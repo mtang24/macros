@@ -3,53 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mouse Activity</title>
+    <title>Macros Readings over a 10-Day Study</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>How does body temperature and activity scores for different mice differ over the 14 day period?</h1>
-    
-    <label for="mouse-select" class="mouse-select-label">Select Mouse ID:</label>
-    <select id="mouse-select">
-        <option value="f1_act">f1_act</option>
-        <option value="f2_act">f2_act</option>
-        <option value="f3_act">f3_act</option>
-        <option value="f4_act">f4_act</option>
-        <option value="f5_act">f5_act</option>
-        <option value="f6_act">f6_act</option>
-        <option value="f7_act">f7_act</option>
-        <option value="f8_act">f8_act</option>
-        <option value="f9_act">f9_act</option>
-        <option value="f10_act">f10_act</option>
-        <option value="f11_act">f11_act</option>
-        <option value="f12_act">f12_act</option>
-        <option value="f13_act">f13_act</option>
-        <option value="m1_act">m1_act</option>
-        <option value="m2_act">m2_act</option>
-        <option value="m3_act">m3_act</option>
-        <option value="m4_act">m4_act</option>
-        <option value="m5_act">m5_act</option>
-        <option value="m6_act">m6_act</option>
-        <option value="m7_act">m7_act</option>
-        <option value="m8_act">m8_act</option>
-        <option value="m9_act">m9_act</option>
-        <option value="m10_act">m10_act</option>
-        <option value="m11_act">m11_act</option>
-        <option value="m12_act">m12_act</option>
-        <option value="m13_act">m13_act</option>
-    </select>
-    
-    <div id="chart" class="chart-container"></div>
-
-    <dl id="mean-tooltip" class="info tooltip">      
-        <dt>Day Number</dt>
-        <dd id="day-number"></dd>
-      
-        <dt>Mean Activity Level</dt>
-        <dd id="mean-activity"></dd>
-    </dl>
-
+    <h1>How do macros differ for diabetic, pre-diabetic, and non-diabetic subjects?</h1>
+    <div id="chart" class="chart-container">
+        <svg id="grid" width="1000" height="700"></svg>
+    </div>
+    <div id="tooltip" class="tooltip" style="opacity: 0;"></div>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="global.js" type="module"></script>
 </body>

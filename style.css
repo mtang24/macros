@@ -14,9 +14,19 @@ body {
 }
 
 .tooltip {
-    position: fixed;
-  
-  }
+    position: absolute;
+    text-align: center;
+    width: auto;
+    height: auto;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
   
 circle {
     transition: 200ms;
@@ -65,4 +75,10 @@ dl.info[hidden]:not(:hover, :focus-within) {
 
 .chart-container {
     margin-top: 20px; /* Add margin above the chart container */
+}
+
+#grid{
+    gap: 10px;
+    padding: 20px;
+    margin: 20px;
 }
