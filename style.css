@@ -7,10 +7,15 @@ body {
         and use the OS’s UI font as the website font
         */
     font: 100%/1.5 system-ui; 
-    max-width: 100ch; /* Set the maximum width of the body */
+    max-width: 120ch; /* Set the maximum width of the body */
     margin-inline: auto;  /* Center the body */
     padding: 10px;  /* Add some padding around the body */
     accent-color: var(--color-accent); /* Set the accent color */
+}
+
+h1 {
+    font-size: 175%;
+    text-align: center;
 }
 
 .tooltip {
@@ -25,7 +30,7 @@ body {
     border-radius: 8px;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s ease;
 }
   
 circle {
@@ -78,7 +83,8 @@ dl.info[hidden]:not(:hover, :focus-within) {
 }
 
 #grid{
+    background-color: #ffffff; /* Use any color you prefer */
     gap: 10px;
-    padding: 20px;
-    margin: 20px;
+    margin: 20px auto;  /* Center horizontally */
+    display: block;     /* Ensure the SVG is treated as a block element */
 }
