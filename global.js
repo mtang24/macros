@@ -247,13 +247,27 @@ function plotData() {
   // Observe the info section.
   observer.observe(infoSection);
 
+  // Re-create tooltip if it doesn't exist.
+  if (d3.select("#tooltip").empty()) {
+    d3.select("body")
+      .append("div")
+      .attr("id", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0)
+      .style("pointer-events", "none");
+  }
+
 function handleDotClick(event, d) {
   // Clean up any previous details view.
   d3.selectAll("#subject-details").remove();
   d3.selectAll("#go-back-arrow").remove();
   d3.selectAll("#scroll-down-arrow").remove();
   window.removeEventListener("wheel", backScrollHandler);
-  d3.select("#tooltip").interrupt().remove();
+
+  d3.select("#tooltip")
+  .interrupt()
+  .style("opacity", 0)
+  .style("display", "none");
   
   // Hide the info section so it doesn’t affect scrolling.
   d3.select("#info-section").style("display", "none");
