@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Glucose Monitoring and Macros</title>
+    <title> Glucose Monitoring and Macros</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
 </head>
 <body>
-    <h1>Visualizing Glucose Levels and Macros Across Metabolic Health Groups</h1>
-    <div id="chart" class="chart-container">
-        <svg id="grid" width="1000" height="700"></svg>
+    <div id="snap-container">
+        <section id="visualization">
+            <h1> 📉 Visualizing Glucose Levels and Macros Across Metabolic Health Groups</h1>
+            <div id="chart" class="chart-container">
+                <svg id="grid" width="1000" height="700"></svg>
+            </div>
+            <div id="tooltip" class="tooltip" style="opacity: 0; position: absolute; display: none;"></div>
+        </section>
+        <section id="info-section">
+            <h2>About the Visualization</h2>
+            <p>
+                This visualization aggregates data from multiple subjects. Each dot represents a subject,
+                with the dot's size based on total Calories and its color corresponding to diabetes status.
+            </p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nunc ut laoreet malesuada,
+                urna justo fermentum quam, at tempor elit nisl eu arcu.
+            </p>
+        </section>
     </div>
-    <div id="tooltip" class="tooltip" style="opacity: 0; position: absolute; display: none;"></div>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="global.js" type="module"></script>
 </body>

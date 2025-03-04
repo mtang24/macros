@@ -213,64 +213,141 @@ function plotData() {
   preSim.alpha(1).restart();
   type2Sim.alpha(1).restart();
 
-  // Click handler function for all groups
-  function handleDotClick(event, d) {
-    // Immediately hide the tooltip.
-    d3.select("#tooltip").style("display", "none");
-
-    // Get the dot's base color and compute a lighter version using the custom function.
-    const dotColor = color(d.Diabetes);
-    const lighterColor = lightenColor(dotColor, 0.5); // adjust factor as needed
-
-    // Transition the page background to the lighter color.
-    d3.select("body")
-      .transition()
-      .duration(500)
-      .style("background-color", lighterColor);
-
-    // Fade out the chart container.
-    d3.select("#grid")
-      .transition()
-      .duration(500)
-      .style("opacity", 0)
-      .on("end", () => {
-        // Remove the chart container and title.
-        d3.select("#grid").remove();
-        d3.select("h1").remove();
-
-        // Append new content for the selected subject.
-        d3.select("body")
-          .append("div")
-          .attr("id", "subject-details")
-          .style("position", "absolute")
-          .style("top", "50%")
-          .style("left", "50%")
-          .style("transform", "translate(-50%, -50%)")
-          .style("color", "black")
-          .style("font-size", "1em")
-          .style("text-align", "center")
-          .html(`
-            <h1>Subject ${d.subject}</h1>
-            <div>
-              <p>Diabetes: ${d.Diabetes}</p>
-              <p>Total Calories: ${d.totalCalories}</p>
-              <p>Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</p>
-              <p>Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</p>
-              <!-- Add more subject-specific content here -->
-            </div>
-            <button id="back-btn" style="margin-top:20px; padding: 5px 10px; font-size:14px;">Back</button>
-          `);
-
-        // Add a click listener to the back button:
-        d3.select("#back-btn").on("click", () => {
-          // Option 1: Reload the page to reset everything.
-          location.reload();
-
-          // Option 2: Alternatively, you can write custom code to remove the
-          // subject details, reset the background color, and re-render the chart.
-        });
+  // Append a scroll down arrow that smooth-scrolls to the info section.
+  if (d3.select("#scroll-down-arrow").empty()) {
+    d3.select("#snap-container")
+      .append("div")
+      .attr("id", "scroll-down-arrow")
+      .style("position", "fixed")
+      .style("bottom", "20px")
+      .style("left", "50%")
+      .style("transform", "translateX(-50%)")
+      .style("cursor", "pointer")
+      .html(`<div style="font-size: 14px;">&#8595; Read more</div>`)
+      .on("click", function() {
+        document.getElementById("info-section").scrollIntoView({ behavior: "smooth", block: "start" });
       });
   }
+
+  // Get references to the info section and scroll arrow.
+  const infoSection = document.getElementById("info-section");
+  const scrollArrow = document.getElementById("scroll-down-arrow");
+
+  // Create an observer to monitor when the info section enters the viewport within #snap-container.
+  const snapContainer = document.getElementById("snap-container");
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      scrollArrow.style.display = entry.isIntersecting ? "none" : "block";
+    });
+  }, { 
+    root: snapContainer,  // Use snap-container as the scrolling area
+    threshold: 0.1 
+  });
+
+  // Observe the info section.
+  observer.observe(infoSection);
+
+function handleDotClick(event, d) {
+  // Clean up any previous details view.
+  d3.selectAll("#subject-details").remove();
+  d3.selectAll("#go-back-arrow").remove();
+  d3.selectAll("#scroll-down-arrow").remove();
+  window.removeEventListener("wheel", backScrollHandler);
+  d3.select("#tooltip").interrupt().remove();
+  
+  // Hide the info section so it doesn’t affect scrolling.
+  d3.select("#info-section").style("display", "none");
+  
+  // Get the dot's base color and compute a lighter version.
+  const dotColor = color(d.Diabetes);
+  const lighterColor = lightenColor(dotColor, 0.5); // adjust factor as needed
+
+  // Transition the page background to the lighter color.
+  d3.select("body")
+    .transition()
+    .duration(500)
+    .style("background-color", lighterColor);
+
+  // Fade out the main visualization elements (grid and header),
+  // then hide them so they can be restored later by resetMainView().
+  d3.select("#grid")
+    .transition()
+    .duration(500)
+    .style("opacity", 0)
+    .on("end", () => {
+      d3.select("#grid").style("display", "none");
+      d3.select("h1").style("display", "none");
+
+      // Inject bounce animation CSS if not already injected.
+      if (d3.select("#bounce-style").empty()) {
+        d3.select("head")
+          .append("style")
+          .attr("id", "bounce-style")
+          .html(`
+            @keyframes bounce {
+              0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+              40% { transform: translateY(-10px); }
+              60% { transform: translateY(-5px); }
+            }
+          `);
+      }
+
+      // Append the details container with initial opacity 0.
+      const details = d3.select("body")
+        .append("div")
+        .attr("id", "subject-details")
+        .html(`
+          <h1>Subject ${d.subject}</h1>
+          <div>
+            <p>Diabetes: ${d.Diabetes}</p>
+            <p>Total Calories: ${d.totalCalories}</p>
+            <p>Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</p>
+            <p>Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</p>
+            <!-- Add more subject-specific content here -->
+          </div>
+        `)
+        .style("position", "absolute")
+        .style("top", "50%")
+        .style("left", "50%")
+        .style("transform", "translate(-50%, -50%)")
+        .style("color", "black")
+        .style("font-size", "1em")
+        .style("text-align", "center")
+        .style("opacity", 0);
+
+      // Fade in the details.
+      details.transition()
+        .duration(1000)
+        .style("opacity", 1);
+
+      // Append the back arrow with bounce animation and tooltip.
+      d3.select("body")
+        .append("div")
+        .attr("id", "go-back-arrow")
+        .style("position", "fixed")
+        .style("bottom", "20px")
+        .style("left", "50%")
+        .style("transform", "translateX(-50%)")
+        .style("text-align", "center")
+        .html(`
+          <div style="font-size: 32px; animation: bounce 1s infinite;">&#8595;</div>
+          <div id="arrow-tooltip" style="font-size: 14px; opacity: 0;">Scroll down to go back</div>
+        `);
+
+      // Fade the arrow tooltip in then out.
+      d3.select("#arrow-tooltip")
+        .transition()
+        .duration(1000)
+        .style("opacity", 1)
+        .transition()
+        .delay(3000)
+        .duration(1000)
+        .style("opacity", 0);
+
+      // Add the global wheel event listener for going back.
+      window.addEventListener("wheel", backScrollHandler);
+    });
+}
 
   // Healthy circles click handler.
   healthyCircles
@@ -429,7 +506,6 @@ async function loadSubjectData(subjectNumber) {
     });
     // Compute total Calories.
     const totalCalories = d3.sum(csvData, d => d.Calories);
-
     // Filter out invalid METs and HR values (i.e. NaN) before computing averages.
     const validMETs = csvData.filter(d => !isNaN(d.METs));
     const avgMETs = d3.mean(validMETs, d => d.METs);
@@ -486,3 +562,119 @@ function forceBoundingBox(bounds, strength = 0.1) {
   force.initialize = (n) => { nodes = n; };
   return force;
 }
+
+function resetMainView() {
+  // Remove any details view and back arrow.
+  d3.selectAll("#subject-details").remove();
+  d3.selectAll("#go-back-arrow").remove();
+  
+  const snapContainer = document.getElementById("snap-container");
+  if (snapContainer) {
+    snapContainer.scrollTop = 0;
+  }
+    
+  // Restore the body's background color.
+  d3.select("body")
+    .transition()
+    .duration(500)
+    .style("background-color", "#ffffff");
+  
+  // Re-display the main visualization elements.
+  d3.select("#grid")
+    .style("display", "block")
+    .transition()
+      .duration(500)
+      .style("opacity", 1);
+  d3.select("h1")
+    .style("display", "block")
+    .transition()
+      .duration(500)
+      .style("opacity", 1);
+  
+  // Re-display the info section (the second page).
+  d3.select("#info-section").style("display", "block");
+  
+  // Remove and re-add the scroll arrow.
+  d3.selectAll("#scroll-down-arrow").remove();
+  d3.select("#snap-container")
+    .append("div")
+    .attr("id", "scroll-down-arrow")
+    .style("position", "fixed")
+    .style("bottom", "20px")
+    .style("left", "50%")
+    .style("transform", "translateX(-50%)")
+    .style("cursor", "pointer")
+    .html(`<div style="font-size: 14px;">&#8595; Read more</div>`)
+    .on("click", function() {
+      document.getElementById("info-section").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  
+  // Re-attach the IntersectionObserver to the new arrow so it hides on page2.
+  const infoSection = document.getElementById("info-section");
+  const scrollArrow = document.getElementById("scroll-down-arrow");
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      scrollArrow.style.display = entry.isIntersecting ? "none" : "block";
+    });
+  }, { 
+    root: snapContainer,
+    threshold: 0.1
+  });
+  observer.observe(infoSection);
+  
+  // Re-enable snap scrolling after a delay.
+  setTimeout(() => {
+    snapContainer.removeEventListener("scroll", lockScroll);
+    d3.select("#snap-container")
+      .style("overflow-y", "scroll")
+      .style("scroll-snap-type", "y mandatory");
+  }, 1000);
+}
+
+function backScrollHandler(e) {
+  // Prevent the default scrolling behavior.
+  e.preventDefault();
+  if (e.deltaY > 0) {
+    // Remove the handler immediately.
+    window.removeEventListener("wheel", backScrollHandler);
+
+    // Immediately force the container to scroll to the top.
+    const snapContainer = document.getElementById("snap-container");
+    snapContainer.scrollTop = 0;
+
+    // Fade out the details and back arrow, then call resetMainView.
+    d3.select("#subject-details")
+      .transition()
+      .duration(500)
+      .style("opacity", 0);
+    d3.select("#go-back-arrow")
+      .transition()
+      .duration(500)
+      .style("opacity", 0)
+      .on("end", () => {
+        resetMainView();
+      });
+  }
+}
+
+// Later, in your back arrow scroll event listener:
+window.addEventListener("wheel", function handleScroll(e) {
+  if (e.deltaY > 0) {
+    window.removeEventListener("wheel", handleScroll);
+    // Fade out the subject details and back arrow.
+    d3.select("#subject-details")
+      .transition()
+      .duration(500)
+      .style("opacity", 0);
+    d3.select("#go-back-arrow")
+      .transition()
+      .duration(500)
+      .style("opacity", 0)
+      .on("end", () => {
+        resetMainView();
+      });
+  }
+});
