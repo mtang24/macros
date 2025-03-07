@@ -535,20 +535,15 @@ async function loadSubjectData(subjectNumber) {
 
 // Load multiple subjects (e.g., subjects 1 to 49)
 async function loadAllSubjects(subjectNumbers) {
-  const results = [];
   const missingSubjectIDs = [24, 25, 37, 40]; // Skip these subjects
-  for (const subject of subjectNumbers) {
-    if (missingSubjectIDs.includes(subject)) {
-      console.log(`Skipping subject ${subject} (file missing).`);
-      continue;
-    }
-    const result = await loadSubjectData(subject);
-    if (result) {
-      results.push(result);
-    }
-  }
-  console.log("Metrics per subject:", results);
-  return results;
+  const validSubjects = subjectNumbers.filter(subject => !missingSubjectIDs.includes(subject));
+  const subjectPromises = validSubjects.map(subject => loadSubjectData(subject));
+  // Wait for all the promises concurrently.
+  const results = await Promise.all(subjectPromises);
+  // Filter null results (if any subjects fail to load)
+  const filteredResults = results.filter(result => result !== null);
+  console.log("Metrics per subject:", filteredResults);
+  return filteredResults;
 }
 
 function forceBoundingBox(bounds, strength = 0.1) {
