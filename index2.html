@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html class="home" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glucose Monitoring and Macros</title>
+  <link rel="stylesheet" href="style2.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
+</head>
+<body>
+  <div id="snap-container">
+    <!-- Title (Home) Page: The original visualization page -->
+    <section id="title-page">
+      <h1>📉 Visualizing Glucose Levels and Macros Across Metabolic Health Groups</h1>
+      <div id="chart" class="chart-container">
+        <svg id="grid" width="1000" height="700"></svg>
+      </div>
+      <div id="tooltip" class="tooltip" style="opacity: 0; position: absolute; display: none;"></div>
+      <!-- User Sliders Container (positioned on the right) -->
+      <div id="user-inputs">
+        <form id="userMetricsForm">
+          <div class="slider-group">
+            <label for="userTotalCalories">
+              Total Calories: <span id="totalCaloriesValue">0.00</span>
+            </label>
+            <input type="range" id="userTotalCalories" name="totalCalories" value="0" min="0" max="50000" step="0.01">
+          </div>
+          <div class="slider-group">
+            <label for="userAvgMETs">
+              Average METs: <span id="avgMETsValue">0.00</span>
+            </label>
+            <input type="range" id="userAvgMETs" name="avgMETs" value="0" min="0" max="50" step="0.01">
+          </div>
+          <div class="slider-group">
+            <label for="userAvgHR">
+              Average HR: <span id="avgHRValue">0.00</span>
+            </label>
+            <input type="range" id="userAvgHR" name="avgHR" value="0" min="0" max="200" step="0.01">
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Five additional pages after the title page -->
+    <section id="page-1">
+      <h2>Page 1</h2>
+      <!-- Optional content for Page 1 -->
+    </section>
+
+    <section id="page-2">
+      <h2>Page 2</h2>
+      <!-- Optional content for Page 2 -->
+    </section>
+
+    <section id="page-3">
+      <h2>Page 3</h2>
+      <!-- Optional content for Page 3 -->
+    </section>
+
+    <section id="page-4">
+      <h2>Page 4</h2>
+      <!-- Optional content for Page 4 -->
+    </section>
+
+    <section id="page-5">
+      <h2>Page 5</h2>
+      <!-- Optional content for Page 5 -->
+    </section>
+
+    <!-- About the visualization section -->
+    <section id="info-section">
+      <h2>About the visualization</h2>
+      <p>
+        The first visualization on this webpage shows aggregate data for individual subjects across three diabetic groups: healthy, pre-diabetes, and Type II diabetes. Each dot represents one subject, with the dot's size based on total calories consumed by the subject during a 10-day period. The color encodings are chosen to correspond with the severity of the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a dot allows the user to view some details about the subject's condition, including total calories and average heart rate. Clicking on a dot takes the user to a details page that displays this information separately, and scrolling down on that page will take you back to the starting (title) page.
+      </p>
+      <p>
+        Further challenges involved in this project include adding more pages that show the distribution of several metrics (such as calories, heart rate, and MET), as well as an interactive feature where users can adjust values to see their position relative to the groups. Special care is taken to prevent overlapping of user data with existing data points.
+      </p>
+    </section>
+  </div>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="global2.js" type="module"></script>
+</body>
+</html>
