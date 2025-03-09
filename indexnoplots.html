@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class="home" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glucose Monitoring and Macros</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div id="snap-container">
+        <section id="page-1">
+            <header>
+                <h1>Visualizing Glucose Levels &amp; Macros</h1>
+            </header>
+            <div class="chart-container" id="plot-page-1"></div>
+        </section>
+        
+        <section id="info-section">
+            <header><h2>About the Visualization</h2></header>
+            <div class="chart-container" id="plot-page-2"></div>
+        </section>
+        
+        <section id="page-3">
+            <header>
+                <h2>Grouped &amp; Individual View</h2>
+            </header>
+            <div class="chart-container" id="plot-page-3"></div>
+        </section>
+        
+        <section id="page-4">
+            <header>
+                <h2>Page 4</h2>
+            </header>
+            <div class="chart-container" id="plot-page-4"></div>
+        </section>
+        
+        <section id="page-5">
+            <header>
+                <h2>Glucose Range Plot</h2>
+            </header>
+            <div class="chart-container" id="plot-page-5"></div>
+        </section>
+        
+        <section id="page-6">
+            <header>
+                <h2>Page 6</h2>
+            </header>
+            <div class="chart-container" id="plot-page-6"></div>
+        </section>
+    </div>
+    
+    <!-- Scroll arrow element for scrollytelling transitions -->
+    <div id="scroll-arrow" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: none;">
+        <i class="fas fa-chevron-down"></i>
+    </div>
+
+    <!-- Optionally, provide a tooltip container -->
+    <div id="tooltip"></div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="global.js" type="module"></script>
+</body>
+</html>

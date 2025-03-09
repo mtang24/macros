@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html class="home" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Glucose Monitoring and Macros</title>
+    <link rel="stylesheet" href="style 5.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div id="slider-container">
+        <div class="slider-item">
+          <span class="slider-label">Total Calories</span>
+          <span class="slider-value">0.00</span>
+          <input type="range" id="slider-calories" min="0" max="36000" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">Avg METs</span>
+          <span class="slider-value">0.00</span>
+          <input type="range" id="slider-mets" min="0" max="30" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">Avg HR</span>
+          <span class="slider-value">0.00</span>
+          <input type="range" id="slider-hr" min="0" max="200" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">Avg Glucose Level</span>
+          <span class="slider-value">40.00</span>
+          <input type="range" id="slider-glucose" min="0" max="500" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">BMI</span>
+          <span class="slider-value">0.00</span>
+          <!-- Here I've chosen 100 as an extreme but technically possible BMI -->
+          <input type="range" id="slider-bmi" min="0" max="100" step="0.01" value="0.00">
+        </div>
+      </div>
+    <div id="snap-container">
+        <section id="visualization">
+            <h1> 📉 Visualizing Glucose Levels and Macros Across Metabolic Health Groups</h1>
+            <div id="chart" class="chart-container">
+                <svg id="grid" width="1000" height="700"></svg>
+            </div>
+            <p> Each dot represents one of 45 subjects, grouped by their metabolic health.  <p>
+            <div id="tooltip" class="tooltip" style="opacity: 0; position: absolute; display: none;"></div>
+        </section>
+        
+        <section id="info-section">
+            <h2>About the visualization</h2>
+            <p>
+                The first visualization on this webpage shows aggregate data for individual subjects across three diabetic groups: healthy, pre-diabetes, and Type II diabetes. Each dot represents one subject, with the dot's size based on total calories consumed by the subject during a 10-day period. The color encodings are chosen to correspond with the severity of the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a dot allows the user to view some details about the subject's condition, including total calories and average heart rate. Clicking on a dot takes the user to a details page that displays this information separately, and scrolling on this page will take the user back to the home visualization page. The clickability is just a placeholder for now and might be used throughout the visualization if needed. We also made it possible to scroll down on the page to access the next ‘slide’. This will be helpful to access our other visuals further down in our ‘scrollytelling’ experience. At the end of the visualization, the user will be able to understand a summary of these metrics across groups and what are the different lifestyles for diabetics and non-diabetics.             </p>
+            <p>
+                Further challenges involved in this project will entail adding more pages that the user can scroll to, including pages that show the distribution of several metrics, such as calories, heart rate, and MET (metabolic equivalent of task). A bigger challenge we foresee is implementing the idea of our main interaction feature - where users can input values for BMI and heart rate and see their dots within each visualization relative to subjects in the three groups. Additionally, they should be able to adjust their values dynamically, seeing how each change affects their placement relative to each group in real time. However, we need to ensure that moving the user’s point doesn’t unintentionally overlap with or alter the positioning of the existing data points, which could make the visualization misleading or difficult to interpret.            </p>
+        </section>
+    
+
+        <section id="page-2">
+          <h2>Do diabetics consume more calories?</h2>
+
+          <div id='container'>
+            <div id='axes-container'></div>
+            <div id='sections'>
+              <div>Section 0</div>
+              <div>Section 1</div>
+              <div>Section 2</div>
+            </div>
+          </div>
+          </div>
+        </section>
+        
+          
+        
+        <section id="page-3">
+            <h2>Page 3</h2>
+        </section>
+
+        <section id="page-4">
+            <h2>Page 4</h2>
+        </section>
+
+        <section id="page-5">
+            <h2>Continuous Glucose Measurement Range Across Groups</h2>
+            <p> This plot shows the range of blood glucose levels measured by the Libre Pro sensor for each subject over a 10-day period. The x-axis represents the glucose measurement in mg/dL, while the y-axis displays the subject ID ordered by group. The color of the line represents the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a line will display the subject's ID and the range of glucose levels for that subject. 
+            </p>
+            <div class="chart-container" id="glrange-container"></div>
+        </section>
+
+        <section id="page-6">
+            <h2>Page 6</h2>
+            <div class="chart-container" id="hr-container"></div>
+        </section>
+    </div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/graph-scroll@1.0.2/graph-scroll.min.js"></script>
+    <script src="global 5.js" type="module"></script>
+</body>
+</html>

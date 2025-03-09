@@ -14,25 +14,7 @@
       width: 100vw;
       height: 100vh;
     }
-    .text-section {
-      position: fixed;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 25%;
-      padding: 20px;
-      background: white;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-      z-index: 10;
-    }
-    /* Right scrollable container */
-    #snap-container {
-      margin-left: 15%;
-      width: 75%;
-      height: 100vh;
-      overflow-y: auto;
-      scroll-snap-type: y mandatory;
-    }
+
     /* Each content section */
     .content-container {
       scroll-snap-align: start;
@@ -44,7 +26,6 @@
     .chart-container {
       width: 100%;
       min-height: 300px;
-      overflow: hidden;
       margin-top: 20px;
     }
     /* Center the SVG elements */
@@ -70,6 +51,29 @@
       font-size: 24px;
       margin-top: 10px;
     }
+    /* Fixed text panel now on the right */
+    .text-section {
+      position: fixed;
+      right: 0;       /* Changed from left: 0 to right: 0 */
+      left: auto;     /* Ensure left is not interfering */
+      top: 50%;
+      transform: translateY(-50%);
+      width: 25%;
+      padding: 20px;
+      background: white;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1); /* Adjust shadow to appear on the left edge */
+      z-index: 10;
+    }
+
+    /* Scrollable container now with margin on the right */
+    #snap-container {
+      margin-right: 70%;  /* Updated margin to clear the right-fixed panel */
+      width: 75%;
+      height: 100vh;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+    }
+
   </style>
 </head>
 <body>

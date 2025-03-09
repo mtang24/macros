@@ -59,10 +59,93 @@ async function loadData() {
   plotBMIDots();
 }
 
+const sliderValues = {
+  totalCalories: 0.00,
+  avgMETs: 0.00,
+  avgHR: 0.00,
+  avgGlucose: 0.00,
+  bmi: 0.00
+};
+
+// Add event listeners to update both the display and our global values
+
+
+document.getElementById('slider-mets').addEventListener('input', function() {
+  sliderValues.avgMETs = parseFloat(this.value);
+  this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgMETs.toFixed(2);
+});
+
+document.getElementById('slider-hr').addEventListener('input', function() {
+  sliderValues.avgHR = parseFloat(this.value);
+  this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgHR.toFixed(2);
+ 
+  const constrainedHR = Math.max(window.hrMinHR, Math.min(window.hrMaxHR, sliderValues.avgHR));
+
+  // Update the slider dot's x (and y) position.
+  const dot = d3.select("#hr-slider-dot");
+  if (dot.size() > 0 && window.hrXScale && window.hrYScale && window.selectedDiabetesGroup) {
+    dot.attr("cx", window.hrXScale(constrainedHR))
+       .attr("cy", window.hrYScale(window.selectedDiabetesGroup) + window.hrYScale.bandwidth()/2);
+  }
+});
+
+document.getElementById('slider-glucose').addEventListener('input', function() {
+  sliderValues.avgGlucose = parseFloat(this.value);
+  this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgGlucose.toFixed(2);
+});
+
+document.getElementById('slider-bmi').addEventListener('input', function() {
+  sliderValues.bmi = parseFloat(this.value);
+  this.parentElement.querySelector('.slider-value').textContent = sliderValues.bmi.toFixed(2);
+});
+
+// When the diabetes group selector changes:
+document.getElementById('slider-group').addEventListener('change', function() {
+  window.selectedDiabetesGroup = this.value;
+  console.log("Selected Diabetes Group:", window.selectedDiabetesGroup);
+  const dot = d3.select("#hr-slider-dot");
+  if (dot.size() > 0 && window.hrYScale) {
+    dot.attr("cy", window.hrYScale(window.selectedDiabetesGroup) + window.hrYScale.bandwidth()/2);
+  }
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
 
+  // Get all sections (each page)
+  const sections = document.querySelectorAll('section');
+  const indicatorContainer = document.getElementById('page-indicator');
+  console.log("Page Indicator Container:", indicatorContainer);
+  
+  // Create one dot per section and add a click event
+  sections.forEach((section) => {
+    const dot = document.createElement('div');
+    dot.classList.add('indicator-dot');
+    dot.addEventListener('click', () => {
+      section.scrollIntoView({ behavior: 'smooth' });
+    });
+    indicatorContainer.appendChild(dot);
+  });
+  
+  // Callback for IntersectionObserver: update active dot based on which section is in view
+  const observerOptions = {
+    threshold: 0.5 // adjust as needed
+  };
+  
+  const observerCallback = (entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const index = Array.from(sections).indexOf(entry.target);
+        document.querySelectorAll('.indicator-dot').forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === index);
+        });
+      }
+    });
+  };
+  
+  const observer = new IntersectionObserver(observerCallback, observerOptions);
+  sections.forEach(section => observer.observe(section));
+  
   // After loadData, if on Page 5, plot the GL range.
   if (document.getElementById("page-5")) {
     // Store the subjectsResults globally so we can use them in plotGLRange.
@@ -70,179 +153,276 @@ document.addEventListener("DOMContentLoaded", async () => {
     plotGLRange();
   }
 
-  // If on Page 2, set up the view toggle for the bar chart vs. swarm plot
-  const page2 = document.getElementById("page-2");
-  if (page2) {
-    // Define dimensions and margins
-    const svgWidth = 800,
-          svgHeight = 600,
-          margin = { top: 60, right: 30, bottom: 60, left: 60 },
-          width = svgWidth - margin.left - margin.right,
-          height = svgHeight - margin.top - margin.bottom;
-
-    // Clear the container and create one static SVG
-    const container = d3.select("#axes-container");
-    container.selectAll("*").remove();
-    const svg = container.append("svg")
-                .attr("width", svgWidth)
-                .attr("height", svgHeight);
-
-    // Create the x and y scales for both views
-    const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-    const xScale = d3.scaleBand()
-                     .domain(groups)
-                     .range([0, width])
-                     .padding(0.4);
-    const minCal = d3.min(data, d => +d.totalCalories);
-    const maxCal = d3.max(data, d => +d.totalCalories);
-    const yScale = d3.scaleLinear()
-                     .domain([0, maxCal * 1.1])
-                     .range([height, 0]);
-
-    // Draw the axes (they remain constant)
-    svg.append("g")
-       .attr("class", "x-axis")
-       .attr("transform", `translate(${margin.left},${height + margin.top})`)
-       .call(d3.axisBottom(xScale));
-    svg.append("g")
-       .attr("class", "y-axis")
-       .attr("transform", `translate(${margin.left},${margin.top})`)
-       .call(d3.axisLeft(yScale));
-
-    // Static titles/labels
-    svg.append("text")
-       .attr("x", svgWidth / 2)
-       .attr("y", margin.top / 2)
-       .attr("text-anchor", "middle")
-       .style("font-size", "16px")
-       .text("Total Calories");
-    svg.append("text")
-       .attr("x", svgWidth / 2)
-       .attr("y", svgHeight - 10)
-       .attr("text-anchor", "middle")
-       .style("font-size", "14px")
-       .text("Group");
-
-    // Create a dedicated group for dynamic data elements (bars or dots)
-    const dataGroup = svg.append("g")
-                         .attr("class", "data-group")
-                         .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Create tooltips if not already present
-    if (d3.select("body").select("#bar-tooltip").empty()) {
-      d3.select("body")
-        .append("div")
-        .attr("id", "bar-tooltip")
-        .style("position", "absolute")
-        .style("padding", "8px")
-        .style("background", "lightgrey")
-        .style("border-radius", "4px")
-        .style("pointer-events", "none")
-        .style("font-size", "12px")
-        .style("opacity", 0);
-    }
-    if (d3.select("body").select("#swarm-tooltip").empty()) {
-      d3.select("body")
-        .append("div")
-        .attr("id", "swarm-tooltip")
-        .style("position", "absolute")
-        .style("padding", "8px")
-        .style("background", "lightgrey")
-        .style("border-radius", "4px")
-        .style("pointer-events", "none")
-        .style("font-size", "12px")
-        .style("opacity", 0);
-    }
-
-    // Initially render the grouped view
-    updateDataView("grouped", dataGroup, xScale, yScale, width, height);
-
-    // Set up the view toggle with smooth transition between data elements.
-    d3.selectAll('input[name="view"]').on("change", function() {
-      const selected = d3.select(this).property("value");
-      updateDataView(selected, dataGroup, xScale, yScale, width, height);
-    });
+  if (document.getElementById("page-6")) {
+    // Store the subjectsResults globally so we can use them in plotGLRange.
+    window.subjectMetricsResults = await loadAllSubjects(Array.from({ length: 49 }, (_, i) => i + 1));
+    plotAvgHRBoxPlot();
   }
+  const subjectNumbers = Array.from({ length: 49 }, (_, i) => i + 1);
+  const subjectsResults = await loadAllSubjects(subjectNumbers);
+ 
+  if (document.getElementById("page-3")) {
+    const macroAverages = computeMacroAverages(subjectsResults);
+    console.log(macroAverages);
+  }
+
+// Helper function to lighten colors for tooltips
+function lightenColor2(col, factor = 0.7) {
+  let c = d3.rgb(col);
+  c.r = Math.round(c.r + (255 - c.r) * factor);
+  c.g = Math.round(c.g + (255 - c.g) * factor);
+  c.b = Math.round(c.b + (255 - c.b) * factor);
+  return c.toString();
+}
+
+function drawPage2Axes() {
+  d3.select("#axes-container").select("svg").remove();
+
+  const margin = { top: 60, right: 300, bottom: 60, left: 100 }; // 🔥 Give more right margin
+const width = 900 - margin.left - margin.right; // 🔥 Increase width so graph is NOT compressed
+const height = 600 - margin.top - margin.bottom;
+
+
+ 
+
+  const svg = d3.select("#axes-container")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+
+  const xScale = d3.scaleBand()
+    .domain(groups)
+    .range([0, width])
+    .padding(0.2);
+    
+  window.page2YScale = d3.scaleLinear()
+    .domain([0, 36000]) 
+    .range([height, 0]);
+
+  svg.append("g")
+    .attr("transform", `translate(0, ${height})`)
+    .call(d3.axisBottom(xScale))
+    .selectAll("text")
+    .style("font-weight", "bold");
+
+  svg.append("g")
+    .call(d3.axisLeft(window.page2YScale))
+    .selectAll("text")
+    .style("font-weight", "bold");
+
+  const color = d3.scaleOrdinal()
+    .domain(groups)
+    .range(["#2C7BB6", "#FDB863", "#D7191C"]);
+
+    const greenLine = svg.append("line")
+    .attr("id", "calorie-slider-line")
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("y1", window.page2YScale(sliderValues.totalCalories))
+    .attr("y2", window.page2YScale(sliderValues.totalCalories))
+    .attr("stroke", "green")
+    .attr("stroke-width", 3)
+    .attr("pointer-events", "none");
+
+    const calorieLabel = svg.append("text")
+    .attr("id", "calorie-slider-label")
+    .attr("x", width + 20) // 🔥 Moves further right
+    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5) 
+    .attr("fill", "black") 
+    .attr("font-size", "14px")
+    .attr("font-weight", "bold")
+    .style("white-space", "nowrap") // ✅ Prevents text wrapping
+    .text(`Your total calories consumed: ${sliderValues.totalCalories}`);
+
+
+
+
+
+
+
+  function drawGroupedBars() {
+    const avgData = groups.map(g => {
+        const groupData = data.filter(d => d.Diabetes === g);
+        const avg = d3.mean(groupData, d => +d.totalCalories) || 0;
+        return { group: g, avgTotalCalories: avg };
+    });
+
+    svg.selectAll(".bar").remove();
+
+    svg.selectAll(".bar")
+        .data(avgData)
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => xScale(d.group))
+        .attr("width", xScale.bandwidth())
+        .attr("y", d => window.page2YScale(d.avgTotalCalories))
+        .attr("height", d => height - window.page2YScale(d.avgTotalCalories))
+        .attr("fill", d => color(d.group))
+        .style("opacity", 0)
+        .on("mouseover", function(event, d) {
+            let tooltip = d3.select("#page2-tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body")
+                    .append("div")
+                    .attr("id", "page2-tooltip")
+                    .style("position", "absolute")
+                    .style("background", "rgba(255, 255, 255, 0.9)")
+                    .style("padding", "8px")
+                    .style("border-radius", "4px")
+                    .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.2)")
+                    .style("pointer-events", "none")
+                    .style("display", "none");
+            }
+            const barColor = color(d.group);
+            const lightColor = lightenColor2(barColor, 0.5);
+            tooltip
+                .style("background", lightColor)
+                .style("display", "block")
+                .html(`<strong>${d.group}</strong><br/>Average Calories: ${d.avgTotalCalories.toFixed(2)}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function(event) {
+            d3.select("#page2-tooltip")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function() {
+            d3.select("#page2-tooltip").style("display", "none");
+        })
+        .transition()
+        .duration(800)
+        .style("opacity", 1);
+  }
+
+  function drawSwarmPlot() {
+    const individuals = data.filter(d => groups.includes(d.Diabetes));
+
+    individuals.forEach(d => {
+        d.x = xScale(d.Diabetes) + xScale.bandwidth() / 2;
+        d.y = window.page2YScale(+d.totalCalories);
+    });
+
+    const simulation = d3.forceSimulation(individuals)
+        .force("x", d3.forceX(d => xScale(d.Diabetes) + xScale.bandwidth() / 2).strength(1))
+        .force("y", d3.forceY(d => window.page2YScale(+d.totalCalories)).strength(0.3))
+        .force("collide", d3.forceCollide(8)) // Prevent overlap, making dots spread out
+        .stop();
+
+    for (let i = 0; i < 150; i++) simulation.tick();
+
+    svg.selectAll(".swarm-dot").remove();
+
+    svg.selectAll(".swarm-dot")
+        .data(individuals)
+        .enter()
+        .append("circle")
+        .attr("class", "swarm-dot")
+        .attr("r", 6)
+        .attr("fill", d => color(d.Diabetes))
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y)
+        .style("opacity", 0)
+        .on("mouseover", function(event, d) {
+            let tooltip = d3.select("#page2-tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body")
+                    .append("div")
+                    .attr("id", "page2-tooltip")
+                    .style("position", "absolute")
+                    .style("background", "rgba(255, 255, 255, 0.9)")
+                    .style("padding", "8px")
+                    .style("border-radius", "4px")
+                    .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.2)")
+                    .style("pointer-events", "none")
+                    .style("display", "none");
+            }
+
+            const dotColor = color(d.Diabetes); // Get color based on diabetes group
+            const lightColor = lightenColor2(dotColor, 0.5); // Lighten for tooltip background
+
+            tooltip
+                .style("background", lightColor) // Set correct background color
+                .style("display", "block")
+                .html(`<strong>Subject ${d.subject}</strong><br/>Calories: ${d.totalCalories}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function(event) {
+            d3.select("#page2-tooltip")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function() {
+            d3.select("#page2-tooltip").style("display", "none");
+        })
+        .transition()
+        .duration(800)
+        .style("opacity", 1);
+}
+
+  drawGroupedBars();
+  d3.selectAll('input[name="view"]').on("change", function () {
+    if (this.value === "grouped") {
+        svg.selectAll(".swarm-dot").remove();  // Clear swarm dots
+        drawGroupedBars();  // Re-draw grouped bars
+    } else if (this.value === "swarm") {
+        svg.selectAll(".bar").remove();  // Clear bars
+        drawSwarmPlot();  // Re-draw swarm plot
+    }
+});
+}
+
+if (document.getElementById("page-2")) {
+  drawPage2Axes();
+}
+
+document.getElementById('slider-calories').addEventListener('input', function() {
+  sliderValues.totalCalories = parseFloat(this.value);
+
+  d3.select("#calorie-slider-line")
+    .attr("y1", window.page2YScale(sliderValues.totalCalories))
+    .attr("y2", window.page2YScale(sliderValues.totalCalories))
+    .raise();
+
+  d3.select("#calorie-slider-label")
+    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5)
+    .attr("x", width + 20) // 🔥 Ensures label stays fully visible
+    .text(`Your total calories consumed: ${sliderValues.totalCalories}`)
+    .raise();
 });
 
-function updateDataView(view, dataGroup, xScale, yScale, width, height) {
-  // Fade out and remove existing elements in dataGroup
-  dataGroup.selectAll("*")
-    .transition()
-    .duration(500)
-    .style("opacity", 0)
-    .remove();
 
-  // After fade-out, render new view
-  setTimeout(() => {
-    if (view === "grouped") {
-      renderGrouped(dataGroup, xScale, yScale, width, height);
-    } else if (view === "swarm") {
-      renderSwarm(dataGroup, xScale, yScale, width, height);
-    }
-  }, 500);
-}
 
-function renderGrouped(dataGroup, xScale, yScale, width, height) {
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const aggregatedData = groups.map(gp => {
-    const groupData = data.filter(d => d.Diabetes === gp);
-    const avgCalories = d3.mean(groupData, d => +d.totalCalories);
-    return { group: gp, avgCalories: avgCalories };
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+});
+document.querySelectorAll('#slider-container input[type="range"]').forEach(slider => {
+  slider.addEventListener('input', function() {
+    const valueDisplay = this.parentElement.querySelector('.slider-value');
+    valueDisplay.textContent = parseFloat(this.value).toFixed(2);
   });
-
-  const bars = dataGroup.selectAll(".bar")
-      .data(aggregatedData)
-      .enter()
-      .append("rect")
-      .attr("class", "bar")
-      .attr("x", d => xScale(d.group))
-      .attr("y", d => yScale(d.avgCalories))
-      .attr("width", xScale.bandwidth())
-      .attr("height", d => height - yScale(d.avgCalories))
-      .attr("fill", d => {
-         if(d.group === "Healthy") return "#2C7BB6";
-         else if(d.group === "Pre-Diabetes") return "#FDB863";
-         else if(d.group === "Type 2 Diabetes") return "#D7191C";
-         else return "gray";
-      })
-      .style("opacity", 0);
-
-  bars.transition().duration(500).style("opacity", 1);
-
-  const tooltip = d3.select("body").select("#bar-tooltip");
-  bars.on("mouseover", function(event, d) {
-       const fillColor = d3.select(this).attr("fill");
-       const lightFill = lightenColor(fillColor, 0.7);
-       tooltip.html(`<strong>${d.group}</strong><br/>Avg Calories: ${d.avgCalories.toFixed(0)}`)
-              .style("background", lightFill)
-              .style("opacity", 1);
-  })
-  .on("mousemove", function(event) {
-       tooltip.style("left", (event.pageX + 10) + "px")
-              .style("top", (event.pageY - 20) + "px");
-  })
-  .on("mouseout", function() {
-       tooltip.style("opacity", 0);
-  });
-}
-
-function renderSwarm(dataGroup, xScale, yScale, width, height) {
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const groupColor = {
-    "Healthy": "#2C7BB6",
-    "Pre-Diabetes": "#FDB863",
-    "Type 2 Diabetes": "#D7191C"
-  };
-
-  const dotRadius = 6;
-  const nodes = data.map(d => ({
-      subject: d.subject,
-      group: d.Diabetes,
-      totalCalories: +d.totalCalories,
-      x: xScale(d.Diabetes) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * 10,
-      y: yScale(+d.totalCalories)
-  }));
+});
 
   const simulation = d3.forceSimulation(nodes)
                        .force("x", d3.forceX(d => xScale(d.group) + xScale.bandwidth() / 2).strength(1))
@@ -279,268 +459,6 @@ function renderSwarm(dataGroup, xScale, yScale, width, height) {
   .on("mouseout", function() {
        tooltip.style("opacity", 0);
   });
-}
-
-
-// Function to render the grouped bar chart view
-function renderGroupedView() {
-  // Set up SVG dimensions and margins
-  const svgWidth = 800, svgHeight = 600,
-        margin = { top: 60, right: 30, bottom: 60, left: 60 },
-        width = svgWidth - margin.left - margin.right,
-        height = svgHeight - margin.top - margin.bottom;
-  
-  // Create the SVG container inside #axes-container
-  const svg = d3.select("#axes-container")
-                .append("svg")
-                .attr("width", svgWidth)
-                .attr("height", svgHeight);
-  
-  // Group element to respect margins
-  const g = svg.append("g")
-               .attr("transform", `translate(${margin.left},${margin.top})`);
-  
-  // Define the groups in the desired order:
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  
-  // Compute aggregated data (calculating the average total calories for each group)
-  const aggregatedData = groups.map(gp => {
-    const groupData = data.filter(d => d.Diabetes === gp);
-    const avgCalories = d3.mean(groupData, d => +d.totalCalories);
-    return { group: gp, avgCalories: avgCalories };
-  });
-  
-  // Create a band scale for the x-axis using the groups
-  const xScale = d3.scaleBand()
-                   .domain(groups)
-                   .range([0, width])
-                   .padding(0.4);
-  
-  // Create a linear scale for the y-axis based on the aggregated average calories
-  const maxCalories = d3.max(aggregatedData, d => d.avgCalories);
-  const yScale = d3.scaleLinear()
-                   .domain([0, maxCalories * 1.1])
-                   .range([height, 0]);
-  
-  // Draw the x-axis
-  const xAxis = d3.axisBottom(xScale);
-  g.append("g")
-   .attr("transform", `translate(0,${height})`)
-   .call(xAxis);
-  
-  // Draw the y-axis
-  const yAxis = d3.axisLeft(yScale);
-  g.append("g")
-   .call(yAxis);
-  
-  // Add a title above the chart
-  svg.append("text")
-     .attr("x", svgWidth / 2)
-     .attr("y", margin.top / 2)
-     .attr("text-anchor", "middle")
-     .style("font-size", "16px")
-     .text("Average Total Calories by Group");
-  
-  // Draw bars for each group representing the aggregated average total calories
-  g.selectAll(".bar")
-   .data(aggregatedData)
-   .enter()
-   .append("rect")
-   .attr("class", "bar")
-   .attr("x", d => xScale(d.group))
-   .attr("y", d => yScale(d.avgCalories))
-   .attr("width", xScale.bandwidth())
-   .attr("height", d => height - yScale(d.avgCalories))
-   .attr("fill", d => {
-       if(d.group === "Healthy") return "#2C7BB6";
-       else if(d.group === "Pre-Diabetes") return "#FDB863";
-       else if(d.group === "Type 2 Diabetes") return "#D7191C";
-       else return "gray";
-   });
-  
-  // Create a tooltip for the grouped view
-  const tooltip = d3.select("body")
-                    .append("div")
-                    .attr("id", "bar-tooltip")
-                    .style("position", "absolute")
-                    .style("padding", "8px")
-                    .style("background", "lightgrey")
-                    .style("border-radius", "4px")
-                    .style("pointer-events", "none")
-                    .style("font-size", "12px")
-                    .style("opacity", 0);
-  
-  // Add tooltip event handlers to the bars
-  g.selectAll(".bar")
-   .on("mouseover", function(event, d) {
-       const fillColor = d3.select(this).attr("fill");
-       const lightFill = lightenColor(fillColor, 0.7); // using your existing lightenColor function
-       tooltip.html(`<strong>${d.group}</strong><br/>Avg Calories: ${d.avgCalories.toFixed(0)}`)
-              .style("background", lightFill)
-              .style("opacity", 1);
-   })
-   .on("mousemove", function(event) {
-       tooltip.style("left", (event.pageX + 10) + "px")
-              .style("top", (event.pageY - 20) + "px");
-   })
-   .on("mouseout", function() {
-       tooltip.style("opacity", 0);
-   });
-  
-  // Add axis labels
-  svg.append("text")
-     .attr("x", svgWidth / 2)
-     .attr("y", svgHeight - 10)
-     .attr("text-anchor", "middle")
-     .style("font-size", "14px")
-     .text("Group");
-  
-  svg.append("text")
-     .attr("transform", "rotate(-90)")
-     .attr("x", -svgHeight / 2)
-     .attr("y", 20)
-     .attr("text-anchor", "middle")
-     .style("font-size", "14px")
-     .text("Total Calories");
-}
-
-
-// Function to render the swarm plot (individual view) 
-function renderSwarmPlot() {
-  // Clear any existing chart in the axes container
-  d3.select("#axes-container").selectAll("*").remove();
-
-  // Set up SVG dimensions and margins
-  const svgWidth = 800, svgHeight = 600,
-        margin = { top: 60, right: 30, bottom: 60, left: 60 },
-        width = svgWidth - margin.left - margin.right,
-        height = svgHeight - margin.top - margin.bottom;
-
-  // Create the SVG container
-  const svg = d3.select("#axes-container")
-                .append("svg")
-                .attr("width", svgWidth)
-                .attr("height", svgHeight);
-
-  // Append a group element to respect margins
-  const g = svg.append("g")
-               .attr("transform", `translate(${margin.left},${margin.top})`);
-
-  // Define the groups and a mapping for their colors
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const groupColor = {
-    "Healthy": "#2C7BB6",
-    "Pre-Diabetes": "#FDB863",
-    "Type 2 Diabetes": "#D7191C"
-  };
-
-  // Create an x-axis using a band scale for the groups
-  const xScale = d3.scaleBand()
-                   .domain(groups)
-                   .range([0, width])
-                   .padding(0.4);
-
-  // Create a y-axis scale based on the overall min/max of totalCalories
-  const minCal = d3.min(data, d => +d.totalCalories);
-  const maxCal = d3.max(data, d => +d.totalCalories);
-  const yScale = d3.scaleLinear()
-                   .domain([0, maxCal * 1.1])
-                   .range([height, 0]);
-
-  // Draw the axes
-  const xAxis = d3.axisBottom(xScale);
-  g.append("g")
-   .attr("transform", `translate(0, ${height})`)
-   .call(xAxis);
-
-  const yAxis = d3.axisLeft(yScale);
-  g.append("g")
-   .call(yAxis);
-
-  // Add a title to the chart
-  svg.append("text")
-     .attr("x", svgWidth / 2)
-     .attr("y", margin.top / 2)
-     .attr("text-anchor", "middle")
-     .style("font-size", "16px")
-     .text("Individual Total Calories (Swarm Plot)");
-
-  // Prepare the nodes: each subject gets an initial x based on its group's center
-  const dotRadius = 6;
-  const nodes = data.map(d => ({
-      subject: d.subject,
-      group: d.Diabetes,
-      totalCalories: +d.totalCalories,
-      // Initial x: center of the corresponding group's band with a slight random offset
-      x: xScale(d.Diabetes) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * 10,
-      // y position based on total calories
-      y: yScale(+d.totalCalories)
-  }));
-
-  // Use a force simulation to avoid overlapping dots
-  const simulation = d3.forceSimulation(nodes)
-                       .force("x", d3.forceX(d => xScale(d.group) + xScale.bandwidth() / 2).strength(1))
-                       .force("y", d3.forceY(d => yScale(d.totalCalories)).strength(1))
-                       .force("collide", d3.forceCollide(dotRadius + 1))
-                       .stop();
-
-  // Run the simulation a fixed number of iterations
-  for (let i = 0; i < 120; ++i) simulation.tick();
-
-  // Create a tooltip for the dots
-  const tooltip = d3.select("body")
-                    .append("div")
-                    .attr("id", "swarm-tooltip")
-                    .style("position", "absolute")
-                    .style("padding", "8px")
-                    .style("background", "lightgrey") // default background; will update on hover
-                    .style("border-radius", "4px")
-                    .style("pointer-events", "none")
-                    .style("font-size", "12px")
-                    .style("opacity", 0);
-
-  // Draw the dots (subjects)
-  g.selectAll(".dot")
-   .data(nodes)
-   .enter()
-   .append("circle")
-   .attr("class", "dot")
-   .attr("cx", d => d.x)
-   .attr("cy", d => d.y)
-   .attr("r", dotRadius)
-   .attr("fill", d => groupColor[d.group])
-   // Tooltip event handlers for dots
-   .on("mouseover", function(event, d) {
-       const fillColor = d3.select(this).attr("fill");
-       const lightFill = lightenColor(fillColor, 0.7); // using your existing lightenColor function
-       tooltip.html(`<strong>Subject ${d.subject}</strong><br/>Total Calories: ${d.totalCalories}`)
-              .style("background", lightFill)
-              .style("opacity", 1);
-   })
-   .on("mousemove", function(event) {
-       tooltip.style("left", (event.pageX + 10) + "px")
-              .style("top", (event.pageY - 20) + "px");
-   })
-   .on("mouseout", function() {
-       tooltip.style("opacity", 0);
-   });
-
-  // Add axis labels
-  svg.append("text")
-     .attr("x", svgWidth / 2)
-     .attr("y", svgHeight - 10)
-     .attr("text-anchor", "middle")
-     .style("font-size", "14px")
-     .text("Group");
-
-  svg.append("text")
-     .attr("transform", "rotate(-90)")
-     .attr("x", -svgHeight / 2)
-     .attr("y", 20)
-     .attr("text-anchor", "middle")
-     .style("font-size", "14px")
-     .text("Total Calories");
-}
 
 
 function plotData() {
@@ -556,28 +474,6 @@ function plotData() {
   const color = d3.scaleOrdinal()
     .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
     .range(["#2C7BB6", "#FDB863", "#D7191C"]);
-
-  // Create a legend group at desired position (e.g., top-right corner)
-  // const legend = svg.append("g")
-  //                   .attr("class", "legend")
-  //                   .attr("transform", `translate(${width - 150},10)`);
-
-  // // For each group add a colored rectangle and label
-  // const groups = color.domain();
-  // groups.forEach((group, i) => {
-  //   const legendItem = legend.append("g")
-  //                            .attr("class", "legend-item")
-  //                            .attr("transform", `translate(0, ${i * 25})`);
-  //   legendItem.append("rect")
-  //             .attr("width", 18)
-  //             .attr("height", 18)
-  //             .attr("fill", color(group));
-  //   legendItem.append("text")
-  //             .attr("x", 24)
-  //             .attr("y", 9)
-  //             .attr("dy", "0.35em")
-  //             .text(group);
-  // })
 
   // Arrange groups vertically by having the same x center but different y centers
   const healthyCenter = { x: centerX - 300, y: centerY };
@@ -660,15 +556,14 @@ function plotData() {
 
   // Create a force simulation for healthy subjects using the bounds:
   const healthySim = d3.forceSimulation(healthysubjects)
-    .force("x", d3.forceX(healthyCenter.x).strength(0.15))
-    .force("y", d3.forceY(healthyCenter.y).strength(0.5))
-    // Increase extra padding and iterations to reduce overlapping:
-    .force("collide", d3.forceCollide().radius(d => d.size + 2).iterations(5))
-    .force("bounding", forceBoundingBox(healthyBounds))
-    .on("tick", () => {
-      healthyCircles.attr("cx", d => d.x)
-                    .attr("cy", d => d.y);
-    });
+  .force("x", d3.forceX(healthyCenter.x).strength(0.15))
+  .force("y", d3.forceY(healthyCenter.y).strength(0.5))
+  .force("collide", d3.forceCollide().radius(d => d.size + 2).iterations(5))
+  .force("bounding", forceBoundingBox(healthyBounds))
+  .on("tick", () => {
+    healthyCircles.attr("cx", d => d.x)
+                  .attr("cy", d => d.y);
+  });
 
   const preSim = d3.forceSimulation(presubjects)
     .force("center", d3.forceCenter(preCenter.x, preCenter.y))
@@ -939,45 +834,40 @@ type2Circles
 })
 .on("click", handleDotClick);
 
-  // Define labels for each group using the group centers.
-  const groupLabels = [
-    { label: "Healthy", center: healthyCenter },
-    { label: "Pre-Diabetes", center: preCenter },
-    { label: "Type 2 Diabetes", center: type2Center }
-  ];
+const groupLabels = [
+  { label: "Healthy", center: healthyCenter },
+  { label: "Pre-Diabetes", center: preCenter },
+  { label: "Type 2 Diabetes", center: type2Center }
+];
 
-  // Vertical position for the label should be relative to a common baseline.
-  const labelY = centerY - rectHeight / 2 - 75; // Adjust as needed
-  const dotRadius = 7;           // Use radius instead of width/height
-  const offset = 30;             // Horizontal distance from the group's center to put the dot
+const labelY = centerY - rectHeight / 2 - 75; // Adjust as needed
+const squareSize = 14;              // Square width/height
+const gap = 5;                      // Gap between square and text
+const labelShift = -25;             // Shift the legend to the left by 20px (adjust as needed)
 
-  // Create a group for each label and dot, and center it.
-  const gap = 5; // gap between dot and text
-  groupLabels.forEach(g => {
-    // Append a group element and place its origin at the group's center.x and at labelY.
-    const labelGroup = svg.append("g")
-      .attr("transform", `translate(${g.center.x}, ${labelY})`);
+groupLabels.forEach(g => {
+  const labelGroup = svg.append("g")
+    // Add labelShift to shift the labels to the left.
+    .attr("transform", `translate(${g.center.x + labelShift}, ${labelY})`);
+    
+  // Append a rectangle (square) positioned just to the left of the text.
+  labelGroup.append("rect")
+    .attr("x", -squareSize - gap)
+    .attr("y", -squareSize / 2)
+    .attr("width", squareSize)
+    .attr("height", squareSize)
+    .attr("fill", color(g.label));
 
-    // Append the text label with text-anchor "middle" so that its center is at x=0.
-    const textElement = labelGroup.append("text")
-      .attr("text-anchor", "middle")
-      .attr("fill", "black")
-      .style("font-size", "16px")
-      .attr("dy", "0.35em") // vertical centering relative to font
-      .text(g.label);
-
-    // After the text is appended, measure its width.
-    // Using getBBox gives dimensions of the text element.
-    const textWidth = textElement.node().getBBox().width;
-
-    // Append the colored dot to the left of the text.
-    // Position it so that the gap plus the dot's radius is to the left of the text's left edge.
-    labelGroup.append("circle")
-      .attr("cx", -textWidth / 2 - gap - dotRadius)
-      .attr("cy", 0)     // vertically centered with the text (0 because group is already translated)
-      .attr("r", dotRadius)
-      .attr("fill", color(g.label));
-  });
+  // Append the text label, starting at x = 0.
+  labelGroup.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("text-anchor", "start")
+    .attr("dy", "0.35em")
+    .style("font-size", "16px")
+    .attr("fill", "black")
+    .text(g.label);
+});
 }
 
 function lightenColor(col, factor = 0.5) {
@@ -1018,13 +908,47 @@ async function loadSubjectData(subjectNumber) {
     // Also compute max Libre Gl
     const maxGL = validLibreGl.length ? d3.max(validLibreGl, d => d["Libre GL"]) : undefined;
 
-    return { subject: subjectNumber, totalCalories, avgMETs, avgHR, minGL, maxGL };
+    // Aggregate macronutrients over the 10-day period
+    const totalCarbs = d3.sum(csvData, d => d.Carbs);
+    const totalProtein = d3.sum(csvData, d => d.Protein);
+    const totalFat = d3.sum(csvData, d => d.Fat);
+    const totalFiber = d3.sum(csvData, d => d.Fiber);
+
+    // Calculate average daily intake
+    const days = 10; // Assuming 10 days of data
+    const avgCarbs = totalCarbs / days;
+    const avgProtein = totalProtein / days;
+    const avgFat = totalFat / days;
+    const avgFiber = totalFiber / days;
+
+    return { 
+      subject: subjectNumber, 
+      totalCalories, 
+      avgMETs, 
+      avgHR, 
+      minGL, 
+      maxGL, 
+      avgCarbs, 
+      avgProtein, 
+      avgFat, 
+      avgFiber
+    };
+
   } catch (error) {
     console.error(`Error loading subject ${subjectNumber} from ${csvPath}:`, error);
     return null;
   }
 }
 
+async function loadAllCSVSubjects(subjectNumbers) {
+  const missingSubjectIDs = [24, 25, 37, 40];
+  const validSubjects = subjectNumbers.filter(subject => !missingSubjectIDs.includes(subject));
+  const subjectPromises = validSubjects.map(subject => loadcsvData(subject));
+  const results = await Promise.all(subjectPromises);
+  const filteredResults = results.filter(result => result !== null);
+  console.log("Metrics per subject:", filteredResults);
+  return filteredResults;
+}
 // Load multiple subjects (e.g., subjects 1 to 49)
 async function loadAllSubjects(subjectNumbers) {
   const missingSubjectIDs = [24, 25, 37, 40]; // Skip these subjects
@@ -1041,6 +965,7 @@ async function loadAllSubjects(subjectNumbers) {
 function forceBoundingBox(bounds, strength = 0.1) {
   let nodes;
   function force(alpha) {
+    if (!nodes) return;  // Prevent iteration if nodes is not set.
     for (const node of nodes) {
       // Check left/right bounds:
       if (node.x - node.size < bounds.x0) {
@@ -1290,13 +1215,14 @@ function plotGLRange() {
                    .range([0, height])
                    .padding(0.5);
 
-  const xMin = d3.min(subjectsData, d => d.minGL);
+  const rawMin = d3.min(subjectsData, d => d.minGL);
+  const xMin = rawMin < 40 ? 40 : rawMin;  // Ensure the lowest value is 40
   const xMax = d3.max(subjectsData, d => d.maxGL);
-
+  
   const xScale = d3.scaleLinear()
-                   .domain([xMin, xMax])
-                   .range([0, width])
-                   .nice();
+                  .domain([xMin, xMax])
+                  .range([0, width])
+                  .nice();
 
   // Draw axes.
   svg.append("g")
@@ -1305,88 +1231,138 @@ function plotGLRange() {
   
   svg.append("g")
      .call(d3.axisLeft(yScale));
+     let glTooltip = d3.select("body").select("#gl-tooltip");
+     if (glTooltip.empty()) {
+       glTooltip = d3.select("body")
+         .append("div")
+         .attr("id", "gl-tooltip")
+         .style("position", "absolute")
+         .style("padding", "8px")
+         .style("background", "lightgrey")
+         .style("border-radius", "4px")
+         .style("pointer-events", "none")
+         .style("font-size", "12px")
+         .style("opacity", 0);
+     }
+   
+// Define legend constants.
+const squareSize = 14, gap = 5;
+// Place the legend above the plot: adjust the x and y offsets as needed.
+const legendX = width/2 - 150; // shift left to center the legend horizontally
+const legendY = -margin.top/2; // place it above the plot
 
+// Create a legend group.
+const legend = svg.append("g")
+  .attr("class", "gl-range-legend")
+  .attr("transform", `translate(${legendX}, ${legendY})`);
+
+// Define the groups in the desired order.
+const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+
+// Append a legend item for each group.
+groups.forEach((grp, i) => {
+  const legendItem = legend.append("g")
+    // Space items horizontally: adjust multiplier (here, 150) as needed.
+    .attr("transform", `translate(${i * 150}, 0)`);
+    
+  // Append a rectangle (square) positioned just to the left of the text.
+  legendItem.append("rect")
+    .attr("x", -squareSize - gap)
+    .attr("y", -squareSize / 2)
+    .attr("width", squareSize)
+    .attr("height", squareSize)
+    .attr("fill", color(grp));
+
+  // Append the text label, starting at x = 0.
+  legendItem.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("text-anchor", "start")
+    .attr("dy", "0.35em")
+    .style("font-size", "16px")
+    .attr("fill", "black")
+    .text(grp);
+});
+    
   // Draw lines for each subject.
   svg.selectAll("line.gl-range")
-     .data(subjectsData)
-     .enter()
-     .append("line")
-     .attr("class", "gl-range")
-     .attr("x1", d => xScale(d.minGL))
-     .attr("x2", d => xScale(d.maxGL))
-     .attr("y1", d => yScale(d.subject) + yScale.bandwidth()/2)
-     .attr("y2", d => yScale(d.subject) + yScale.bandwidth()/2)
-     .attr("stroke", "gray")
-     .attr("stroke-width", 2);
+    .data(subjectsData)
+    .enter()
+    .append("line")
+    .attr("class", "gl-range")
+    .attr("x1", d => xScale(Math.max(d.minGL, 40)))
+    .attr("x2", d => xScale(d.maxGL))
+    .attr("y1", d => yScale(d.subject) + yScale.bandwidth() / 2)
+    .attr("y2", d => yScale(d.subject) + yScale.bandwidth() / 2)
+    .attr("stroke", "gray")
+    .attr("stroke-width", 2);
 
-  // Draw circles for minGL with tooltip events.
   svg.selectAll("circle.min-gl")
-     .data(subjectsData)
-     .enter()
-     .append("circle")
-     .attr("class", "min-gl")
-     .attr("cx", d => xScale(d.minGL))
-     .attr("cy", d => yScale(d.subject) + yScale.bandwidth()/2)
-     .attr("r", 5)
-     .attr("fill", d => {
-       const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
-       return color(group);
-     })
-     .on("mouseover", (event, d) => {
-       d3.select("#tooltip")
-         .style("display", "block")
-         .transition()
-           .duration(200)
-           .style("opacity", 0.9)
-         .html(
-           `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-            <div style="text-align: left;">Glucose range: ${d.minGL}-${d.maxGL}</div>`
-         )
-         .style("left", (event.pageX + 5) + "px")
-         .style("top", (event.pageY - 28) + "px");
-     })
-     .on("mouseout", () => {
-       d3.select("#tooltip")
-         .transition()
-         .duration(500)
-         .style("opacity", 0)
-         .on("end", () => { d3.select("#tooltip").style("display", "none"); });
-     });
+  .data(subjectsData)
+  .enter()
+  .append("circle")
+  .attr("class", "min-gl")
+  .attr("cx", d => xScale(Math.max(d.minGL, 40)))
+  .attr("cy", d => yScale(d.subject) + yScale.bandwidth()/2)
+  .attr("r", 5)
+  .attr("fill", d => {
+    const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+    return color(group);
+  })
+  .on("mouseover", (event, d) => {
+    const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+    glTooltip
+      .style("display", "block")
+      .html(`<div>
+                <strong>Subject: ${d.subject}</strong><br/>
+                Diabetes status: ${group}<br/>
+                Minimum recorded glucose: ${Math.max(d.minGL, 40)} mg/dL<br/>
+                Maximum recorded glucose: ${d.maxGL} mg/dL
+              </div>`)
+      .style("left", (event.pageX + 5) + "px")
+      .style("top", (event.pageY - 28) + "px")
+      .transition().duration(200)
+      .style("opacity", 0.9);
+  })
+  .on("mouseout", () => {
+    glTooltip.transition().duration(500)
+      .style("opacity", 0)
+      .on("end", () => glTooltip.style("display", "none"));
+  });
 
-  // Draw circles for maxGL with tooltip events.
-  svg.selectAll("circle.max-gl")
-     .data(subjectsData)
-     .enter()
-     .append("circle")
-     .attr("class", "max-gl")
-     .attr("cx", d => xScale(d.maxGL))
-     .attr("cy", d => yScale(d.subject) + yScale.bandwidth()/2)
-     .attr("r", 5)
-     .attr("fill", d => {
-       const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
-       return color(group);
-     })
-     .on("mouseover", (event, d) => {
-       d3.select("#tooltip")
-         .style("display", "block")
-         .transition()
-           .duration(200)
-           .style("opacity", 0.9)
-         .html(
-           `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-            <div style="text-align: left;">Glucose range: ${d.minGL}-${d.maxGL}</div>`
-         )
-         .style("left", (event.pageX + 5) + "px")
-         .style("top", (event.pageY - 28) + "px");
-     })
-     .on("mouseout", () => {
-       d3.select("#tooltip")
-         .transition()
-         .duration(500)
-         .style("opacity", 0)
-         .on("end", () => { d3.select("#tooltip").style("display", "none"); });
-     });
-
+svg.selectAll("circle.max-gl")
+  .data(subjectsData)
+  .enter()
+  .append("circle")
+  .attr("class", "max-gl")
+  .attr("cx", d => xScale(d.maxGL))
+  .attr("cy", d => yScale(d.subject) + yScale.bandwidth()/2)
+  .attr("r", 5)
+  .attr("fill", d => {
+    const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+    return color(group);
+  })
+  .on("mouseover", (event, d) => {
+    const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+    glTooltip
+      .style("display", "block")
+      .html(`<div>
+                <strong>Subject: ${d.subject}</strong><br/>
+                Diabetes status: ${group}<br/>
+                Minimum recorded glucose: ${d.minGL} mg/dL<br/>
+                Maximum recorded glucose: ${d.maxGL} mg/dL
+              </div>`)
+      .style("left", (event.pageX + 5) + "px")
+      .style("top", (event.pageY - 28) + "px")
+      .transition().duration(200)
+      .style("opacity", 0.9);
+  })
+  .on("mouseout", () => {
+    glTooltip.transition().duration(500)
+      .style("opacity", 0)
+      .on("end", () => glTooltip.style("display", "none"));
+  });
+  
   // Optionally, add axis labels.
   svg.append("text")
      .attr("x", width / 2)
@@ -1399,7 +1375,7 @@ function plotGLRange() {
      .attr("y", height + margin.bottom - 5)
      .attr("text-anchor", "middle")
      .style("font-size", "12px")
-     .text("Libre GL Value");
+     .text("Libre Glucose Value");
 
   svg.append("text")
      .attr("text-anchor", "middle")
@@ -1409,6 +1385,310 @@ function plotGLRange() {
      .style("font-size", "12px")
      .text("Subject");
 }
+
+function computeMacroAverages(data) {
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+  const macros = ["Carbs", "Fat", "Protein", "Fiber"];
+  console.log("Input data for computeMacroAverages:", data);
+
+  // Initialize an object to store averages for each group
+  const averages = groups.map(group => {
+    const groupData = data.filter(d => d.Diabetes === group);
+    const macroAverages = macros.map(macro => {
+      const validValues = groupData.filter(d => !isNaN(d[macro])).map(d => +d[macro]);
+      return {
+        macro,
+        average: validValues.length ? d3.mean(validValues) : 0
+      };
+    });
+    return { group, macroAverages };
+  });
+  console.log(averages);
+  return averages;
+  
+}
+function renderMacronutrientChart(data, containerId) {
+  const width = 800;
+  const height = 500;
+  const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const svg = d3.select(containerId)
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const groups = data.map(d => d.group);
+  const macros = data[0].macroAverages.map(d => d.macro);
+
+  const x0 = d3.scaleBand()
+    .domain(groups)
+    .range([0, innerWidth])
+    .padding(0.2);
+
+  const x1 = d3.scaleBand()
+    .domain(macros)
+    .range([0, x0.bandwidth()])
+    .padding(0.1);
+
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(data, d => d3.max(d.macroAverages, m => m.average))])
+    .range([innerHeight, 0]);
+
+  const color = d3.scaleOrdinal()
+    .domain(macros)
+    .range(d3.schemeCategory10);
+
+  // Draw bars
+  svg.selectAll(".group")
+    .data(data)
+    .enter()
+    .append("g")
+    .attr("class", "group")
+    .attr("transform", d => `translate(${x0(d.group)},0)`)
+    .selectAll("rect")
+    .data(d => d.macroAverages)
+    .enter()
+    .append("rect")
+    .attr("x", d => x1(d.macro))
+    .attr("y", d => y(d.average))
+    .attr("width", x1.bandwidth())
+    .attr("height", d => innerHeight - y(d.average))
+    .attr("fill", d => color(d.macro));
+
+  // Add axes
+  svg.append("g")
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(d3.axisBottom(x0));
+
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // Add labels
+  svg.append("text")
+    .attr("x", innerWidth / 2)
+    .attr("y", -10)
+    .attr("text-anchor", "middle")
+    .text("Average Macronutrient Intake by Group");
+
+  // Add legend
+  const legend = svg.selectAll(".legend")
+    .data(macros)
+    .enter()
+    .append("g")
+    .attr("class", "legend")
+    .attr("transform", (d, i) => `translate(0,${i * 20})`);
+
+  legend.append("rect")
+    .attr("x", innerWidth - 18)
+    .attr("width", 18)
+    .attr("height", 18)
+    .attr("fill", color);
+
+  legend.append("text")
+    .attr("x", innerWidth - 24)
+    .attr("y", 9)
+    .attr("dy", ".35em")
+    .style("text-anchor", "end")
+    .text(d => d);
+}
+
+function plotAvgHRBoxPlot() {
+  if (!window.subjectMetricsResults) return;
+  const data = window.subjectMetricsResults;
+
+  // Set dimensions and margins for the chart.
+  const margin = { top: 10, right: 30, bottom: 50, left: 100 },
+        width = 560 - margin.left - margin.right,
+        height = 800 - margin.top - margin.bottom;
+
+  // Append the SVG to the container.
+  const svg = d3.select("#hr-container")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Define the color scale.
+  const color = d3.scaleOrdinal()
+    .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
+    .range(["#2C7BB6", "#FDB863", "#D7191C"]);
+
+  // Compute summary statistics per group using rollup.
+  const sumstatMap = d3.rollup(
+    data,
+    v => {
+      const values = v.map(g => +g.avgHR).sort(d3.ascending);
+      const q1 = d3.quantile(values, 0.25),
+            median = d3.quantile(values, 0.5),
+            q3 = d3.quantile(values, 0.75);
+      const interQuantileRange = q3 - q1;
+      const computedMin = q1 - 1.5 * interQuantileRange;
+      const actualMin = d3.min(values);
+      const min = Math.max(computedMin, actualMin);
+      const max = q3 + 1.5 * interQuantileRange;
+      return { q1, median, q3, interQuantileRange, min, max };
+    },
+    d => (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy"
+  );
+
+  // Convert the Map to an array.
+  const sumstat = Array.from(sumstatMap, ([key, value]) => ({ key, value }));
+
+  // Set up the Y scale with the three metabolic groups.
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+  const y = d3.scaleBand()
+    .range([0, height])
+    .domain(groups)
+    .padding(0.4);
+  svg.append("g")
+    .call(d3.axisLeft(y).tickSize(0))
+    .select(".domain").remove();
+
+  // Set up the X scale for Average HR.
+  const minHR = d3.min(data, d => +d.avgHR),
+        maxHR = d3.max(data, d => +d.avgHR);
+  // Store these globally so slider event handlers can use them.
+  window.hrMinHR = minHR;
+  window.hrMaxHR = maxHR;
+  const x = d3.scaleLinear()
+    .domain([minHR - 5, maxHR + 5])
+    .range([0, width]);
+  // Save the x scale and y scale globally:
+  window.hrXScale = x;
+  window.hrYScale = y;
+
+  // Append a visible X axis.
+  svg.append("g")
+    .attr("transform", `translate(0, ${height})`)
+    .call(d3.axisBottom(x).ticks(5));
+
+  // Add X axis label.
+  svg.append("text")
+    .attr("text-anchor", "end")
+    .attr("x", width)
+    .attr("y", height + margin.top + 30)
+    .text("Average HR");
+
+  // Draw vertical lines (whiskers) for each group.
+  svg.selectAll("vertLines")
+    .data(sumstat)
+    .enter()
+    .append("line")
+      .attr("x1", d => x(d.value.min))
+      .attr("x2", d => x(d.value.max))
+      .attr("y1", d => y(d.key) + y.bandwidth() / 2)
+      .attr("y2", d => y(d.key) + y.bandwidth() / 2)
+      .attr("stroke", "black");
+
+  // Draw the main boxes for each group.
+  svg.selectAll("boxes")
+    .data(sumstat)
+    .enter()
+    .append("rect")
+      .attr("x", d => x(d.value.q1))
+      .attr("width", d => x(d.value.q3) - x(d.value.q1))
+      .attr("y", d => y(d.key))
+      .attr("height", y.bandwidth())
+      .attr("stroke", "black")
+      .style("fill", d => color(d.key))
+      .style("opacity", 0.3)
+      .on("mouseover", function(event, d) {
+          tooltip.transition().duration(200).style("opacity", 1);
+          tooltip.html(
+            `<strong>${d.key}</strong><br>
+             Q1: ${d.value.q1.toFixed(1)}<br>
+             Median: ${d.value.median.toFixed(1)}<br>
+             Q3: ${d.value.q3.toFixed(1)}<br>
+             IQR: ${d.value.interQuantileRange.toFixed(1)}<br>
+             Min: ${d.value.min.toFixed(1)}<br>
+             Max: ${d.value.max.toFixed(1)}`
+          )
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY + 10) + "px");
+      })
+      .on("mouseleave", function() {
+          tooltip.transition().duration(200).style("opacity", 0);
+      });
+
+  // Draw median lines.
+  svg.selectAll("medianLines")
+    .data(sumstat)
+    .enter()
+    .append("line")
+      .attr("x1", d => x(d.value.median))
+      .attr("x2", d => x(d.value.median))
+      .attr("y1", d => y(d.key))
+      .attr("y2", d => y(d.key) + y.bandwidth())
+      .attr("stroke", "black");
+
+  // Create a tooltip for the points.
+  let tooltip = d3.select("#hr-container").select(".tooltip");
+  if (tooltip.empty()) {
+    tooltip = d3.select("#hr-container")
+      .append("div")
+      .attr("class", "tooltip")
+      .style("opacity", 0)
+      .style("position", "absolute")
+      .style("background", "lightgrey")
+      .style("border-radius", "4px")
+      .style("padding", "8px")
+      .style("pointer-events", "none")
+      .style("font-size", "16px");
+  }
+
+  // -- Add individual points with jitter for each subject's avgHR.
+  const jitterWidth = 50;
+  svg.selectAll("indPoints")
+    .data(data)
+    .enter()
+    .append("circle")
+      .attr("cx", d => x(d.avgHR))
+      .attr("cy", d => {
+         const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+         return y(group) + y.bandwidth() / 2 - jitterWidth/2 + Math.random() * jitterWidth;
+      })
+      .attr("r", 4)
+      .attr("fill", d => {
+         const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
+         return color(group);
+      })
+      .attr("stroke", "black")
+      .on("mouseover", function(event, d) {
+          tooltip.transition().duration(200).style("opacity", 1);
+          tooltip.html("<span style='color:grey'>Average HR: </span>" + d.avgHR)
+                 .style("left", (event.pageX + 30) + "px")
+                 .style("top", (event.pageY + 30) + "px");
+      })
+      .on("mouseleave", function() {
+          tooltip.transition().duration(200).style("opacity", 0);
+      });
+
+  // Set default selected group if none.
+  if (!window.selectedDiabetesGroup) {
+    window.selectedDiabetesGroup = "Healthy";
+  }
+
+  // Append the user's interactive dot (slider dot).
+  const sliderDot = svg.append("circle")
+    .attr("id", "hr-slider-dot")
+    .attr("cx", x(sliderValues.avgHR))  // x position based on avgHR slider value.
+    .attr("cy", y(window.selectedDiabetesGroup) + y.bandwidth() / 2)  // Centered vertically in the group band.
+    .attr("r", 4)
+    .attr("fill", "black")
+    .attr("stroke", "black")
+    .attr("stroke-width", 2);
+
+  console.log("Slider dot position:", x(sliderValues.avgHR), y(window.selectedDiabetesGroup) + y.bandwidth()/2);
+}
+
+document.getElementById('slider-hr').setAttribute('min', window.hrMinHR);
+document.getElementById('slider-hr').setAttribute('max', window.hrMaxHR);
+
 
 function createResponsiveSVG(containerSelector, margin = { top: 40, right: 30, bottom: 40, left: 100 }) {
   const container = document.querySelector(containerSelector);
@@ -1441,3 +1721,4 @@ window.addEventListener("resize", () => {
   plotGLRange();
   // Repeat for other plots…
 });
+
