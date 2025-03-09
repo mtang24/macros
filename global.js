@@ -178,9 +178,10 @@ function lightenColor2(col, factor = 0.7) {
 function drawPage2Axes() {
   d3.select("#axes-container").select("svg").remove();
 
-  const margin = { top: 60, right: 300, bottom: 60, left: 100 }; // 🔥 Give more right margin
-const width = 900 - margin.left - margin.right; // 🔥 Increase width so graph is NOT compressed
+  const margin = { top: 60, right: 250, bottom: 60, left: 100 }; // 🔥 More right margin
+const width = 850 - margin.left - margin.right; // 🔥 Ensure graph isn't squished
 const height = 600 - margin.top - margin.bottom;
+
 
 
  
@@ -230,13 +231,14 @@ const height = 600 - margin.top - margin.bottom;
 
     const calorieLabel = svg.append("text")
     .attr("id", "calorie-slider-label")
-    .attr("x", width + 20) // 🔥 Moves further right
-    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5) 
-    .attr("fill", "black") 
+    .attr("x", width + 30) // 🔥 Extra space so it NEVER cuts off
+    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5)
+    .attr("fill", "black")
     .attr("font-size", "14px")
     .attr("font-weight", "bold")
-    .style("white-space", "nowrap") // ✅ Prevents text wrapping
+    .style("white-space", "nowrap") // ✅ Ensures text doesn't get cut off
     .text(`Your total calories consumed: ${sliderValues.totalCalories}`);
+
 
 
 
@@ -385,17 +387,30 @@ if (document.getElementById("page-2")) {
 document.getElementById('slider-calories').addEventListener('input', function() {
   sliderValues.totalCalories = parseFloat(this.value);
 
+  console.log("Slider Value Updated:", sliderValues.totalCalories); // Debugging log
+
   d3.select("#calorie-slider-line")
     .attr("y1", window.page2YScale(sliderValues.totalCalories))
     .attr("y2", window.page2YScale(sliderValues.totalCalories))
     .raise();
 
+  // ✅ Get correct graph width
+  const svgWidth = document.querySelector("#axes-container svg").clientWidth;
+  const marginRight = 150; // ✅ Ensure there's enough space
+
+  // 🔥 Ensure the label stays fixed in the right position
   d3.select("#calorie-slider-label")
-    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5)
-    .attr("x", width + 20) // 🔥 Ensures label stays fully visible
-    .text(`Your total calories consumed: ${sliderValues.totalCalories}`)
+    .attr("x", svgWidth - marginRight)  // ✅ Keeps it in place
+    .attr("y", window.page2YScale(sliderValues.totalCalories) + 5)  // ✅ Moves with the line
+    .style("text-anchor", "end")  // ✅ Keeps text aligned properly
+    .style("white-space", "nowrap")  // ✅ Prevents cutoff
+    .text(`Your total calories consumed: ${sliderValues.totalCalories}`)  // ✅ Updates dynamically
     .raise();
 });
+
+
+
+
 
 
 
