@@ -1,5 +1,6 @@
 let data = [];
 let subjectData = {};
+const subjectToDiabetesGroup = {};
 
 async function loadData() {
   // Load the merged CSV data
@@ -8,6 +9,7 @@ async function loadData() {
   // Group data by subject (each row should have a 'subject' field)
   data.forEach(d => {
     const subject = d.subject;
+    subjectToDiabetesGroup[+d.subject] = d.Diabetes;
     if (!subjectData[subject]) {
       subjectData[subject] = [];
     }
@@ -163,7 +165,11 @@ document.addEventListener("DOMContentLoaded", async () => {
  
   if (document.getElementById("page-3")) {
     const macroAverages = computeMacroAverages(subjectsResults);
-    console.log(macroAverages);
+  
+    // Append Pie Chart to Page 3
+    const page3 = document.getElementById("page-3");
+    page3.innerHTML = '<div id="macroPieChartContainer"></div>'; // Clear and add a container
+    renderMacroPieChart(macroAverages);
   }
 
 // Helper function to lighten colors for tooltips
@@ -417,17 +423,6 @@ document.getElementById('slider-calories').addEventListener('input', function() 
 
 
 
-
-
-
-
-
-
-
-
-
-
-  
   
 
 
@@ -935,6 +930,7 @@ async function loadSubjectData(subjectNumber) {
     const avgProtein = totalProtein / days;
     const avgFat = totalFat / days;
     const avgFiber = totalFiber / days;
+    const diabetesGroup = subjectToDiabetesGroup[subjectNumber] || "Healthy";
 
     return { 
       subject: subjectNumber, 
@@ -946,7 +942,8 @@ async function loadSubjectData(subjectNumber) {
       avgCarbs, 
       avgProtein, 
       avgFat, 
-      avgFiber
+      avgFiber,
+      Diabetes: diabetesGroup
     };
 
   } catch (error) {
@@ -1403,8 +1400,7 @@ svg.selectAll("circle.max-gl")
 
 function computeMacroAverages(data) {
   const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const macros = ["Carbs", "Fat", "Protein", "Fiber"];
-  console.log("Input data for computeMacroAverages:", data);
+  const macros = ["avgCarbs", "avgProtein", "avgFat", "avgFiber"];
 
   // Initialize an object to store averages for each group
   const averages = groups.map(group => {
@@ -1418,98 +1414,92 @@ function computeMacroAverages(data) {
     });
     return { group, macroAverages };
   });
+
   console.log(averages);
   return averages;
-  
 }
-function renderMacronutrientChart(data, containerId) {
-  const width = 800;
-  const height = 500;
-  const margin = { top: 50, right: 50, bottom: 50, left: 50 };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+function renderMacroPieChart(macroAverages) {
+  const width = 400, height = 400, radius = Math.min(width, height) / 2;
+  
+  // Clear previous content
+  d3.select("#macroPieChartContainer").html("");
 
-  const svg = d3.select(containerId)
+  // Add Title - Styled professionally
+  const title = d3.select("#macroPieChartContainer")
+    .append("h2")
+    .attr("id", "macroPieChartTitle")
+    .style("text-align", "center")
+    .style("margin-bottom", "10px")
+    .style("font-size", "22px")
+    .style("color", "#333")
+    .style("font-weight", "600")
+    .text("Comparing Macronutrient Distributions");
+
+  // SVG Container
+  const svg = d3.select("#macroPieChartContainer")
     .append("svg")
     .attr("width", width)
     .attr("height", height)
     .append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
+    .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-  const groups = data.map(d => d.group);
-  const macros = data[0].macroAverages.map(d => d.macro);
+  // Color Scale with Transparency
+  const color = d3.scaleOrdinal(["rgba(52, 152, 219, 0.7)",  // Soft Blue
+                                 "rgba(231, 76, 60, 0.7)",   // Soft Red
+                                 "rgba(46, 204, 113, 0.7)",  // Soft Green
+                                 "rgba(241, 196, 15, 0.7)"]); // Soft Yellow
 
-  const x0 = d3.scaleBand()
-    .domain(groups)
-    .range([0, innerWidth])
-    .padding(0.2);
+  function updateChart(selectedGroup) {
+    const data = macroAverages.find(d => d.group === selectedGroup)?.macroAverages || [];
+    const pie = d3.pie().value(d => d.average)(data);
+    const arc = d3.arc().innerRadius(50).outerRadius(radius);
 
-  const x1 = d3.scaleBand()
-    .domain(macros)
-    .range([0, x0.bandwidth()])
-    .padding(0.1);
+    // Bind data
+    const path = svg.selectAll("path").data(pie);
+    
+    // Enter + Update with Smooth Transitions
+    path.enter().append("path")
+      .merge(path)
+      .transition().duration(700)
+      .attr("d", arc)
+      .attr("fill", (d, i) => color(i))
+      .attr("stroke", "#fff")
+      .style("stroke-width", "2px")
+      .style("opacity", 0.9);
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(data, d => d3.max(d.macroAverages, m => m.average))])
-    .range([innerHeight, 0]);
+    path.exit().remove();
 
-  const color = d3.scaleOrdinal()
-    .domain(macros)
-    .range(d3.schemeCategory10);
+    // Add Labels
+    const text = svg.selectAll("text").data(pie);
 
-  // Draw bars
-  svg.selectAll(".group")
-    .data(data)
-    .enter()
-    .append("g")
-    .attr("class", "group")
-    .attr("transform", d => `translate(${x0(d.group)},0)`)
-    .selectAll("rect")
-    .data(d => d.macroAverages)
-    .enter()
-    .append("rect")
-    .attr("x", d => x1(d.macro))
-    .attr("y", d => y(d.average))
-    .attr("width", x1.bandwidth())
-    .attr("height", d => innerHeight - y(d.average))
-    .attr("fill", d => color(d.macro));
+    text.enter().append("text")
+      .merge(text)
+      .transition().duration(500)
+      .attr("transform", d => `translate(${arc.centroid(d)})`)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "14px")
+      .attr("font-weight", "bold")
+      .attr("fill", "#333")
+      .text(d => d.data.macro);
 
-  // Add axes
-  svg.append("g")
-    .attr("transform", `translate(0,${innerHeight})`)
-    .call(d3.axisBottom(x0));
+    text.exit().remove();
 
-  svg.append("g")
-    .call(d3.axisLeft(y));
+    // Update Title Based on Selected Group
+    title.text(`Comparing Macronutrient Distribution: ${selectedGroup}`);
+  }
 
-  // Add labels
-  svg.append("text")
-    .attr("x", innerWidth / 2)
-    .attr("y", -10)
-    .attr("text-anchor", "middle")
-    .text("Average Macronutrient Intake by Group");
+  // Listen for changes in diabetes group selector
+  document.getElementById('slider-group').addEventListener('change', function() {
+    window.selectedDiabetesGroup = this.value;
+    console.log("Selected Diabetes Group:", window.selectedDiabetesGroup);
+    updateChart(window.selectedDiabetesGroup);
+  });
 
-  // Add legend
-  const legend = svg.selectAll(".legend")
-    .data(macros)
-    .enter()
-    .append("g")
-    .attr("class", "legend")
-    .attr("transform", (d, i) => `translate(0,${i * 20})`);
-
-  legend.append("rect")
-    .attr("x", innerWidth - 18)
-    .attr("width", 18)
-    .attr("height", 18)
-    .attr("fill", color);
-
-  legend.append("text")
-    .attr("x", innerWidth - 24)
-    .attr("y", 9)
-    .attr("dy", ".35em")
-    .style("text-anchor", "end")
-    .text(d => d);
+  // Initialize with default selection
+  updateChart(document.getElementById('slider-group').value);
 }
+
+
 
 function plotAvgHRBoxPlot() {
   if (!window.subjectMetricsResults) return;

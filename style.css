@@ -37,10 +37,13 @@ body {
 }
 
 section {
-    scroll-snap-align: start;
-    height: 100vh; /* Full viewport height */
-    padding-top: 0.1px;
-    box-sizing: border-box; /* Ensures padding doesn’t affect the overall height */
+  height: 100vh; /* Each section takes up the full viewport height */
+  width: 100%;   /* Ensure it takes up the full width */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  scroll-snap-align: start;
 }
 
 h1 {
