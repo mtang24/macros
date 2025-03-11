@@ -68,8 +68,8 @@ const glucoseMinLimit = 40;
 const glucoseMaxLimit = 410;
 
 // Set initial values.
-let currentGlucoseMin = glucoseMinLimit;
-let currentGlucoseMax = glucoseMaxLimit;
+let currentGlucoseMin = 100;
+let currentGlucoseMax = 200;
 
 // Get slider elements.
 const rangeSlider = document.querySelector('.range-slider');
@@ -79,15 +79,30 @@ const rangeTrack = document.querySelector('.range-track');
 
 // Function to update thumb and track positions and label displays.
 function updateGlucoseSlider() {
-  const sliderWidth = rangeSlider.clientWidth;
-  const minPerc = (currentGlucoseMin - glucoseMinLimit) / (glucoseMaxLimit - glucoseMinLimit);
-  const maxPerc = (currentGlucoseMax - glucoseMinLimit) / (glucoseMaxLimit - glucoseMinLimit);
+  const containerWidth = rangeSlider.clientWidth;
+  const thumbWidth = thumbMin.offsetWidth; // assuming both thumbs have the same width
+  // Compute offset percent based on half the thumb’s width.
+  const offsetPercent = (thumbWidth / 2) / containerWidth * 100;
   
-  thumbMin.style.left = (minPerc * 100) + '%';
-  thumbMax.style.left = (maxPerc * 100) + '%';
-  rangeTrack.style.left = (minPerc * 100) + '%';
-  rangeTrack.style.width = ((maxPerc - minPerc) * 100) + '%';
+  // Compute raw percentages for both thumbs.
+  let minPerc = (currentGlucoseMin - glucoseMinLimit) / (glucoseMaxLimit - glucoseMinLimit) * 100;
+  let maxPerc = (currentGlucoseMax - glucoseMinLimit) / (glucoseMaxLimit - glucoseMinLimit) * 100;
   
+  // Adjust for boundaries:
+  if (minPerc <= 0) {
+    minPerc = offsetPercent;
+  }
+  if (maxPerc >= 100) {
+    maxPerc = 100 - offsetPercent;
+  }
+  
+  // Apply positions.
+  thumbMin.style.left = minPerc + '%';
+  thumbMax.style.left = maxPerc + '%';
+  rangeTrack.style.left = minPerc + '%';
+  rangeTrack.style.width = (maxPerc - minPerc) + '%';
+  
+  // Update displayed values.
   document.getElementById('slider-glucose-min-value').textContent = currentGlucoseMin.toFixed(2);
   document.getElementById('slider-glucose-max-value').textContent = currentGlucoseMax.toFixed(2);
 }
@@ -174,3 +189,34 @@ document.addEventListener('touchend', () => {
 // Optionally, expose the current values for use in global.js:
 window.userGlucoseMin = () => currentGlucoseMin;
 window.userGlucoseMax = () => currentGlucoseMax;
+
+// Function to update thumb position
+function updateThumbPosition(thumb, value, min, max, container) {
+  const containerWidth = container.clientWidth;
+  const thumbWidth = thumb.offsetWidth; // should be 20px per CSS (or adjust accordingly)
+  // Compute value as percentage (0 to 100)
+  let percent = (value - min) / (max - min) * 100;
+  // Compute offset percent based on half the thumb width
+  const offsetPercent = (thumbWidth / 2) / containerWidth * 100;
+  
+  // Ensure that at 0% or 100% the thumb stays inside the container.
+  if (percent >= 100) {
+    percent = 100 - offsetPercent;
+  } else if (percent <= 0) {
+    percent = offsetPercent;
+  }
+  
+  thumb.style.left = percent + "%";
+}
+
+const minGlucose = 40;  // example minimum
+const maxGlucose = 410; // example maximum
+
+// Update thumb when input changes
+sliderGlucoseMaxInput.addEventListener('input', () => {
+  const value = parseFloat(sliderGlucoseMaxInput.value);
+  updateThumbPosition(thumbMax, value, minGlucose, maxGlucose, rangeSlider);
+  // For an input change, update the current value and refresh the slider.
+  currentGlucoseMax = value;
+  updateGlucoseSlider();
+});

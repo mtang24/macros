@@ -296,6 +296,8 @@ dl.info[hidden]:not(:hover, :focus-within) {
   height: 6px;
   background: #ddd;
   margin: 15px 0;
+  padding: 0 30px;  /* Adjust this value as needed */
+  box-sizing: border-box;
 }
 .range-track {
   position: absolute;
@@ -313,4 +315,8 @@ dl.info[hidden]:not(:hover, :focus-within) {
   border-radius: 50%;
   cursor: pointer;
   user-select: none;
+}
+
+#thumb-min, #thumb-max {
+  transform: translateX(-50%);
 }

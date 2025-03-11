@@ -261,7 +261,7 @@ svg.append("text")
     .style("white-space", "nowrap") // ✅ Ensures text doesn't get cut off
     .text(`Your total calories consumed: ${sliderValues.totalCalories}`);
 
-    
+
 
 function drawGroupedBars() {
   const avgData = groups.map(g => {
@@ -1455,6 +1455,8 @@ function plotGLRange() {
     .attr("y", d => d.y + 5)
     .attr("text-anchor", "end")
     .style("font-size", "12px")
+    .style("font-weight", "bold")
+    .style("fill", color(bestGroup.group)) // Use best group's color
     .text("Your input");
   label.exit().remove();
 }
@@ -1657,6 +1659,8 @@ function updateUserGlucoseRange() {
     .attr("y", d => d.y + 5)
     .attr("text-anchor", "end")
     .style("font-size", "12px")
+    .style("font-weight", "bold")
+    .style("fill", color(bestGroup.group)) // Use best group's color
     .text("Your input");
   label.exit().remove();
 }
@@ -1844,8 +1848,6 @@ window.updateUserGlucoseRange = updateUserGlucoseRange;
 //     .text("Your input");
 //   label.exit().remove();
 // }
-
-// window.updateUserGlucoseRange = updateUserGlucoseRange;
 
 function computeMacroAverages(data) {
   const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
