@@ -11,7 +11,7 @@
 <body>
     <div id="slider-container">
         <div class="slider-item">
-          <span class="slider-label">Total Calories</span>
+          <span class="slider-label">Avg Daily Calories</span>
           <span class="slider-value">0.00</span>
           <input type="range" id="slider-calories" min="0" max="36000" step="0.01" value="0.00">
         </div>
@@ -22,13 +22,20 @@
         </div>
         <div class="slider-item">
           <span class="slider-label">Avg HR</span>
-          <span class="slider-value">0.00</span>
-          <input type="range" id="slider-hr" min="0" max="200" step="0.01" value="0.00">
-        </div>
-        <div class="slider-item">
-          <span class="slider-label">Avg Glucose Level</span>
           <span class="slider-value">40.00</span>
-          <input type="range" id="slider-glucose" min="0" max="500" step="0.01" value="0.00">
+          <input type="range" id="slider-hr" min="40" max="100" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item" id="slider-glucose-container">
+          <span class="slider-label">Avg Glucose Level</span>
+          <span class="slider-value">
+            Range: <span id="slider-glucose-min-value">40.00</span> -
+            <span id="slider-glucose-max-value">410.00</span>
+          </span>
+          <div class="range-slider">
+            <div class="range-track"></div>
+            <div class="range-thumb" id="thumb-min"></div>
+            <div class="range-thumb" id="thumb-max"></div>
+          </div>
         </div>
         <div class="slider-item">
           <span class="slider-label">BMI</span>
@@ -65,28 +72,32 @@
     
 
         <section id="page-2">
-            <h2>Do diabetics consume more calories?</h2>
-            <h4></h4>
-            <div id="view-toggle">
-              <input type="radio" id="grouped-view" name="view" value="grouped" checked>
-              <label for="grouped-view">Grouped View</label>
-              <input type="radio" id="swarm-view" name="view" value="swarm">
-              <label for="swarm-view">Individual View</label>
-            </div>
-            <div id="axes-container"></div>
-          </section>
+          <h2>Do Diabetics Consume More Calories?</h2>
+          <h4></h4>
+          <div id="sample-text-box">
+            The graph below shows the <strong>total calories consumed for each group or subject over the 10-day period</strong>, depending on the selected view. Try moving the slider to match your calorie consumption over the same 10-day period and see where your value falls on both views!
+          </div>
+          <div id="view-toggle">
+            <input type="radio" id="grouped-view" name="view" value="grouped">
+            <label for="grouped-view">Grouped View</label>
+            <input type="radio" id="swarm-view" name="view" value="swarm" checked>
+            <label for="swarm-view">Individual View</label>
+          </div>
+          <div id="axes-container"></div>
+        </section>
+        
           
         
         <section id="page-3">
-            <h2>Page 3</h2>
+            <h2>Distribution of Macros 🥩</h2>
         </section>
 
         <section id="page-4">
-            <h2>Page 4</h2>
+            <h2>BMI</h2>
         </section>
 
         <section id="page-5">
-            <h2>Continuous Glucose Measurement Range Across Groups</h2>
+            <h2>How do glucose levels vary across groups?</h2>
             <p> This plot shows the range of blood glucose levels measured by the Libre Pro sensor for each subject over a 10-day period. The minimum possible value is 40 mg/dL and the maximum possible value is 400 mg/dL. The x-axis represents the glucose measurement in mg/dL, while the y-axis displays the subject ID ordered by group. The color of the line represents the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a line will display the subject's ID and the range of glucose levels for that subject. 
             </p>
             <div class="chart-container" id="glrange-container"></div>
@@ -95,14 +106,23 @@
         <section id="page-6">
             <h2>Heart Rate</h2>
             <p>
-                average heart rate over the last minute provided by the FitBit Sense Smartwatch in beats per minute
+                The visualization below illustrations average heart rate over the last minute provided by the FitBit Sense Smartwatch in beats per minute.
+                
             </p>
             <div class="chart-container" id="hr-container"></div>
         </section>
+        <section id="page-final">
+          <div class="content">
+            <h1>Putting it all together: Making Predictions and Moving Forward</h1>
+            <p>Hello! This is some sample text!</p>
+          </div>
+        </section>
+        
     </div>
 
     <div id="page-indicator"></div>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="slider.js" type="module"></script>
     <script src="global.js" type="module"></script>
 </body>
 </html>
