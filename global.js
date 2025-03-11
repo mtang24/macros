@@ -119,7 +119,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Get all sections (each page)
   const sections = document.querySelectorAll('section');
   const indicatorContainer = document.getElementById('page-indicator');
-  console.log("Page Indicator Container:", indicatorContainer);
   
   // Create one dot per section and add a click event
   sections.forEach((section) => {
@@ -437,7 +436,6 @@ drawPage2Axes();
 document.getElementById('slider-calories').addEventListener('input', function() {
   // Store the raw slider value (0 to 36000)
   sliderValues.totalCalories = parseFloat(this.value);
-  console.log("Slider Value Updated:", sliderValues.totalCalories);
   
   // Update the display number next to the slider (divide by 10)
   const valueDisplay = this.parentElement.querySelector('.slider-value');
@@ -1463,11 +1461,18 @@ function plotGLRange() {
 
 
 function updateUserGlucoseRange() {
-  // Ensure global SVG and newDomain exist.
+  // If subject metrics are not loaded, wait and try again.
+  if (!window.subjectMetricsResults) {
+      console.warn("Subject metrics not loaded yet, retrying...");
+      setTimeout(updateUserGlucoseRange, 500);
+      return;
+  }
+  // Ensure our responsive SVG has been created.
   if (!window.svg || !window.newDomain) {
-    console.warn("SVG or newDomain not defined. Calling plotGLRange() to create them.");
-    plotGLRange();
-    if (!window.svg || !window.newDomain) return;
+      console.warn("SVG or newDomain not defined. Calling plotGLRange() to create them.");
+      plotGLRange();
+      // If still not defined, exit.
+      if (!window.svg || !window.newDomain) return;
   }
   
   // Get slider values (using defaults if not defined)
