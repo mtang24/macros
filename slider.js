@@ -1,41 +1,116 @@
-// Get slider elements by their parent container
+// // Get slider elements by their parent container
+// const sliderCalories = document.getElementById('slider-calories').parentElement;
+// const sliderMets = document.getElementById('slider-mets').parentElement;
+// const sliderHR = document.getElementById('slider-hr').parentElement;
+// const sliderGlucoseContainer = document.getElementById('slider-glucose-container');
+// const sliderGlucoseMinInput = document.getElementById('slider-glucose-min-value');
+// const sliderGlucoseMaxInput = document.getElementById('slider-glucose-max-value');
+// const sliderBMI = document.getElementById('slider-bmi').parentElement;
+// const sliderGroup = document.getElementById('slider-group').parentElement;
+
+// // Map the pages to the slider items you want visible
+// const sliderConfig = {
+//   'page-2': [sliderCalories],
+//   'page-3': [],
+//   'page-4': [sliderBMI],
+//   'page-5': [sliderGlucoseContainer],
+//   'page-6': [sliderHR]
+// };
+
+// // Function to hide all slider items
+// function hideAllSliders() {
+//   [sliderCalories, sliderMets, sliderHR, sliderGlucoseContainer, sliderBMI, sliderGroup].forEach(el => {
+//     el.style.display = 'none';
+//   });
+// }
+
+// // Function to update slider display based on the active page
+// function updateSliderForPage(pageId) {
+//   hideAllSliders();
+//   if (sliderConfig[pageId]) {
+//     sliderConfig[pageId].forEach(el => el.style.display = 'block');
+//   }
+// }
+
+// // Select all sections (pages)
+// const sections = document.querySelectorAll("section");
+
+// // Set up the Intersection Observer to track each section's visibility
+// const observerOptions = {
+//   root: null,    // use the viewport as the container
+//   threshold: 0.5 // trigger when at least 50% of the section is visible
+// };
+
+// const observer = new IntersectionObserver((entries) => {
+//   entries.forEach(entry => {
+//     if (entry.isIntersecting) {
+//       const pageId = entry.target.id;
+//       // If the page is configured for sliders, show them; otherwise, hide them
+//       if (sliderConfig[pageId]) {
+//         updateSliderForPage(pageId);
+//       } else {
+//         hideAllSliders();
+//       }
+//     }
+//   });
+// }, observerOptions);
+
+// // Observe each section
+// sections.forEach(section => {
+//   observer.observe(section);
+// });
+
+// // Initialize by hiding all sliders
+// hideAllSliders();
+
+// Get the slider container element
+const sliderContainer = document.getElementById('slider-container');
+
+// Get individual slider elements (assuming they are within the container)
 const sliderCalories = document.getElementById('slider-calories').parentElement;
 const sliderMets = document.getElementById('slider-mets').parentElement;
 const sliderHR = document.getElementById('slider-hr').parentElement;
 const sliderGlucoseContainer = document.getElementById('slider-glucose-container');
-const sliderGlucoseMinInput = document.getElementById('slider-glucose-min');
-const sliderGlucoseMaxInput = document.getElementById('slider-glucose-max');
+const sliderGlucoseMinInput = document.getElementById('slider-glucose-min-value');
+const sliderGlucoseMaxInput = document.getElementById('slider-glucose-max-value');
 const sliderBMI = document.getElementById('slider-bmi').parentElement;
 const sliderGroup = document.getElementById('slider-group').parentElement;
 
-// Map the pages to the slider items you want visible
+// Map pages to the slider items you want visible (using the actual elements)
 const sliderConfig = {
   'page-2': [sliderCalories],
-  'page-3': [sliderGroup],
+  'page-3': [], // No sliders for page-3
   'page-4': [sliderBMI],
   'page-5': [sliderGlucoseContainer],
   'page-6': [sliderHR]
 };
 
-// Function to hide all slider items
-function hideAllSliders() {
-  [sliderCalories, sliderMets, sliderHR, sliderGlucoseContainer, sliderBMI, sliderGroup].forEach(el => {
+// Function to update the slider container based on the active page.
+// This function first hides all slider items and then displays only those that are configured.
+function updateSliderContainerForPage(pageId) {
+  // Hide all slider items inside the container.
+  Array.from(sliderContainer.children).forEach(el => {
     el.style.display = 'none';
   });
-}
-
-// Function to update slider display based on the active page
-function updateSliderForPage(pageId) {
-  hideAllSliders();
-  if (sliderConfig[pageId]) {
-    sliderConfig[pageId].forEach(el => el.style.display = 'block');
+  
+  // Check if the page should have any sliders.
+  if (sliderConfig[pageId] && sliderConfig[pageId].length > 0) {
+    // Make sure the container is visible.
+    sliderContainer.style.display = 'block';
+    // Show only the configured slider items.
+    sliderConfig[pageId].forEach(el => {
+      el.style.display = 'block';
+    });
+  } else {
+    // Hide the container entirely if no slider should be shown.
+    sliderContainer.style.display = 'none';
   }
 }
 
-// Select all sections (pages)
+// Select all sections (pages) on your site.
 const sections = document.querySelectorAll("section");
 
-// Set up the Intersection Observer to track each section's visibility
+// Set up the Intersection Observer to track each section's visibility.
 const observerOptions = {
   root: null,    // use the viewport as the container
   threshold: 0.5 // trigger when at least 50% of the section is visible
@@ -45,23 +120,19 @@ const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       const pageId = entry.target.id;
-      // If the page is configured for sliders, show them; otherwise, hide them
-      if (sliderConfig[pageId]) {
-        updateSliderForPage(pageId);
-      } else {
-        hideAllSliders();
-      }
+      updateSliderContainerForPage(pageId);
     }
   });
 }, observerOptions);
 
-// Observe each section
+// Observe each section.
 sections.forEach(section => {
   observer.observe(section);
 });
 
-// Initialize by hiding all sliders
-hideAllSliders();
+// Initialize by hiding the slider container.
+updateSliderContainerForPage(null);
+
 
 // Define the glucose range limits.
 const glucoseMinLimit = 40;

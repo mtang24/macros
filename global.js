@@ -1,6 +1,17 @@
 let data = [];
 let subjectData = {};
 const subjectToDiabetesGroup = {};
+  // Create a scale to map total Calories to a dot radius (adjust range as needed)
+  const sizeScale = d3.scalePow()
+  .exponent(2)
+  .domain([10111, 34251])
+  .range([20, 55]);
+
+
+// Define a color scale for the Diabetes values
+const color = d3.scaleOrdinal()
+  .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
+  .range(["#2C7BB6", "#FDB863", "#D7191C"]);
 
 async function loadData() {
   // Load the merged CSV data
@@ -31,12 +42,9 @@ async function loadData() {
   const minCalories = d3.min(totalCaloriesValues);
   const maxCalories = d3.max(totalCaloriesValues);
 
-  // Create a scale to map total Calories to a dot radius (adjust range as needed)
-  const sizeScale = d3.scalePow()
-    .exponent(2)
-    .domain([minCalories, maxCalories])
-    .range([20, 55]);
 
+  
+  
   // Update each dot in the merged data and attach new metrics:
   data.forEach(d => {
     const subj = +d.subject; // ensure subject is numeric
@@ -91,6 +99,11 @@ document.getElementById('slider-hr').addEventListener('input', function() {
       // 'd' here is one of the group names from the groups array.
       return window.hrYScale(d) + window.hrYScale.bandwidth()/2;
     });
+
+    const predictionHrEl = document.getElementById('prediction-hr');
+  if (predictionHrEl) {
+    predictionHrEl.innerHTML = `Your Average Heart Rate: <strong>${sliderValues.avgHR.toFixed(2)}</strong> BPM`;
+  }
 });
 
 // document.getElementById('slider-glucose').addEventListener('input', function() {
@@ -106,7 +119,6 @@ document.getElementById('slider-bmi').addEventListener('input', function() {
 // When the diabetes group selector changes:
 document.getElementById('slider-group').addEventListener('change', function() {
   window.selectedDiabetesGroup = this.value;
-  console.log("Selected Diabetes Group:", window.selectedDiabetesGroup);
   const dot = d3.select("#hr-slider-dot");
   if (dot.size() > 0 && window.hrYScale) {
     dot.attr("cy", window.hrYScale(window.selectedDiabetesGroup) + window.hrYScale.bandwidth()/2);
@@ -120,10 +132,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sections = document.querySelectorAll('section');
   const indicatorContainer = document.getElementById('page-indicator');
   
-  // Create one dot per section and add a click event
+  // Create one dot per section and add a click event with a hand cursor.
   sections.forEach((section) => {
     const dot = document.createElement('div');
     dot.classList.add('indicator-dot');
+    dot.style.cursor = 'pointer'; // add hand cursor
     dot.addEventListener('click', () => {
       section.scrollIntoView({ behavior: 'smooth' });
     });
@@ -169,9 +182,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   
     // Append Pie Chart to Page 3
     const page3 = document.getElementById("page-3");
-    page3.innerHTML = '<div id="macroPieChartContainer"></div>'; // Clear and add a container
+    page3.innerHTML = `
+    <h2 class="page-title">Macronutrient Consumption Across Diabetes Groups</h2>
+    <div id="macroPieChartContainer"></div>
+  `
     renderMacroPieChart(macroAverages);
   }
+
+  updatePredictedGroup();
 
 // Helper function to lighten colors for tooltips
 function lightenColor2(col, factor = 0.7) {
@@ -181,6 +199,160 @@ function lightenColor2(col, factor = 0.7) {
   c.b = Math.round(c.b + (255 - c.b) * factor);
   return c.toString();
 }
+
+/*prediction stuff*/
+function predictFromCalorie() {
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+  let bestGroup = groups[0];
+  let bestDiff = Infinity;
+  const userCal = sliderValues.totalCalories / 10;
+  groups.forEach(group => {
+    const groupData = data.filter(d => d.Diabetes === group);
+    const avgCal = d3.mean(groupData, d => (+d.totalCalories) / 10) || 0;
+    const diff = Math.abs(avgCal - userCal);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestGroup = group;
+    }
+  });
+  if (bestGroup === "Healthy") return 0;
+  else if (bestGroup === "Pre-Diabetes") return 1;
+  else return 2;
+}
+
+function predictFromHR() {
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+  let bestGroup = groups[0];
+  let bestDiff = Infinity;
+  const userHR = sliderValues.avgHR;
+  groups.forEach(group => {
+    const groupData = data.filter(d => d.Diabetes === group);
+    const avgHR = d3.mean(groupData, d => +d.avgHR) || 0;
+    const diff = Math.abs(avgHR - userHR);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestGroup = group;
+    }
+  });
+  if (bestGroup === "Healthy") return 0;
+  else if (bestGroup === "Pre-Diabetes") return 1;
+  else return 2;
+}
+
+function predictFromGlucose() {
+  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
+  const sortedSubjects = data.slice().sort((a, b) => {
+    if (a.Diabetes !== b.Diabetes) {
+      return groups.indexOf(a.Diabetes) - groups.indexOf(b.Diabetes);
+    }
+    return +a.subject - +b.subject;
+  });
+  const groupAverageGL = groups.map(group => {
+    const groupData = sortedSubjects.filter(d => d.Diabetes === group);
+    const avgMin = d3.mean(groupData, d => +d.minGL) || 0;
+    const avgMax = d3.mean(groupData, d => +d.maxGL) || 0;
+    return { group, avgMin, avgMax };
+  });
+  const userMin = parseFloat(document.getElementById('slider-glucose-min-value').textContent) || 40;
+  const userMax = parseFloat(document.getElementById('slider-glucose-max-value').textContent) || 410;
+  
+  let bestGroupObj = groupAverageGL[0];
+  let bestDiff = Infinity;
+  groupAverageGL.forEach(g => {
+    const diff = Math.abs(g.avgMin - userMin) + Math.abs(g.avgMax - userMax);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestGroupObj = g;
+    }
+  });
+  if (bestGroupObj.group === "Healthy") return 0;
+  else if (bestGroupObj.group === "Pre-Diabetes") return 1;
+  else return 2;
+}
+
+function predictMajority() {
+  const calPred = predictFromCalorie();
+  const hrPred = predictFromHR();
+  const glucosePred = predictFromGlucose();
+  const votes = [calPred, hrPred, glucosePred];
+  const counts = {0: 0, 1: 0, 2: 0};
+  votes.forEach(vote => counts[vote]++);
+  let majorityLabel = 1; // default to Pre-Diabetes
+  let maxCount = 0;
+  for (let key in counts) {
+    if (counts[key] > maxCount) {
+      maxCount = counts[key];
+      majorityLabel = parseInt(key);
+    }
+  }
+  return majorityLabel;
+}
+
+function updatePredictedGroup() {
+  const majority = predictMajority();
+  let groupName, groupColor, extraMessage;
+  if (majority === 0) {
+    groupName = "Healthy";
+    groupColor = "#2C7BB6"; // blue
+    extraMessage = "You likely have normal glucose levels and show little to no signs of insulin resistance or diabetes. Keep up the healthy habits!";
+  } else if (majority === 1) {
+    groupName = "Pre-Diabetes";
+    groupColor = "#FDB863"; // gold/yellow
+    extraMessage = "Your glucose levels are likely still higher than normal, but not high enough to be classified as diabetes. Healthy choices can help prevent diabetic development!";
+  } else if (majority === 2) {
+    groupName = "Type 2 Diabetes";
+    groupColor = "#D7191C"; // red
+    extraMessage = "Your glucose levels are likely very high. If this is the case, medical intervention and management is needed to prevent issues from arising. Making healthy choices can help minimize negative effects.";
+  }
+
+  // Update the list item: colored box appears first, then the group label.
+  const predEl = document.getElementById('prediction-group');
+  if (predEl) {
+    predEl.innerHTML = `Your <strong>Predicted</strong> Metabolic Health Group: <span class="color-box" style="display:inline-block;width:15px;height:15px;background:${groupColor};margin-right:5px;"></span><strong>${groupName}</strong>`;
+  }
+
+  // Update the extra paragraph similarly, with the box first.
+  const extraEl = document.getElementById('prediction-summary');
+  if (extraEl) {
+    extraEl.innerHTML = `Your predicted metabolic health group is <span class="color-box" style="display:inline-block;width:15px;height:15px;background:${groupColor};margin-right:5px;"></span><strong>${groupName}</strong>! ${extraMessage}`;
+  }
+}
+
+// Attach/update your slider event listeners (calorie and HR) to call updatePredictedGroup() as needed.
+document.getElementById('slider-calories').addEventListener('input', function() {
+  sliderValues.totalCalories = parseFloat(this.value);
+  const dailyCalories = sliderValues.totalCalories / 10;
+  const valueDisplay = this.parentElement.querySelector('.slider-value');
+  valueDisplay.textContent = dailyCalories.toFixed(2);
+  d3.select("#calorie-slider-line")
+    .attr("y1", window.page2YScale(sliderValues.totalCalories))
+    .attr("y2", window.page2YScale(sliderValues.totalCalories))
+    .raise();
+  d3.select("#calorie-slider-label")
+    .attr("x", window.page2ChartWidth + 30)
+    .attr("y", window.page2YScale(sliderValues.totalCalories))
+    .attr("dy", "0.35em")
+    .style("text-anchor", "start")
+    .text(`Your Avg Daily Calories: ${dailyCalories.toFixed(2)}`)
+    .raise();
+  
+  // Update predicted group after calorie slider update.
+  updatePredictedGroup();
+});
+
+document.getElementById('slider-hr').addEventListener('input', function() {
+  sliderValues.avgHR = parseFloat(this.value);
+  this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgHR.toFixed(2);
+  const constrainedHR = Math.max(window.hrMinHR, Math.min(window.hrMaxHR, sliderValues.avgHR));
+  d3.selectAll(".hr-slider-dot")
+    .attr("cx", window.hrXScale(constrainedHR))
+    .attr("cy", function(d) {
+      return window.hrYScale(d) + window.hrYScale.bandwidth() / 2;
+    });
+  
+  // Update predicted group after HR slider update.
+  updatePredictedGroup();
+});
 
 function drawPage2Axes() {
   d3.select("#axes-container").select("svg").remove();
@@ -259,7 +431,7 @@ svg.append("text")
     .attr("font-size", "14px")
     .attr("font-weight", "bold")
     .style("white-space", "nowrap") // ✅ Ensures text doesn't get cut off
-    .text(`Your total calories consumed: ${sliderValues.totalCalories}`);
+    .text(`Your Avg Daily Calories: ${sliderValues.totalCalories}`);
 
 
 
@@ -436,6 +608,8 @@ drawPage2Axes();
 document.getElementById('slider-calories').addEventListener('input', function() {
   // Store the raw slider value (0 to 36000)
   sliderValues.totalCalories = parseFloat(this.value);
+
+  const dailyCalories = sliderValues.totalCalories / 10;
   
   // Update the display number next to the slider (divide by 10)
   const valueDisplay = this.parentElement.querySelector('.slider-value');
@@ -453,8 +627,14 @@ document.getElementById('slider-calories').addEventListener('input', function() 
     .attr("y", window.page2YScale(sliderValues.totalCalories))
     .attr("dy", "0.35em")
     .style("text-anchor", "start")
-    .text(`Your total calories consumed: ${(sliderValues.totalCalories / 10).toFixed(2)}`)
+    .text(`Your Avg Daily Calories: ${(sliderValues.totalCalories / 10).toFixed(2)}`)
     .raise();
+
+    const predictionEl = document.getElementById('prediction-calories');
+if (predictionEl) {
+  predictionEl.innerHTML = `Your Average Daily Calorie Intake: <strong>${dailyCalories.toFixed(2)}</strong> Calories`;
+}
+
 });
 
 
@@ -468,6 +648,90 @@ slider.addEventListener('input', function() {
   valueDisplay.textContent = parseFloat(this.value).toFixed(2);
 });
 });
+
+function plotStarterDot() {
+  // Select the starter page section within snap-container.
+  const svgContainer = d3.select("#starter-svg-container");
+
+  // Set dimensions for the SVG element.
+  const width = 500;
+  const height = 500;
+
+  // Create and append an SVG element to the starter page.
+  const svg = svgContainer.append("svg")
+                .attr("id", "starter-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+  // Hard-code subject 26's data (example values)
+  const subject26 = {
+    subject: 26,
+    Diabetes: "Pre-Diabetes",
+    totalCalories: 18649,   // Example calorie value.
+    avgMETs:"N/A",          // Example METs.
+    avgHR: 81.99,             // Example heart rate.
+    minGL: 90,             // Example minimum glucose.
+    maxGL: 233,            // Example maximum glucose.
+    // Position the dot in the center of the SVG.
+    x: width / 2,
+    y: height / 2,
+    // Compute circle size based on calories (scaling factor can be adjusted)
+    size: sizeScale(18649)       // For example, 1500 calories yields a radius of 10.
+  };
+
+  // Hard-code the prediabetic color.
+  const prediabeticColor = "#FDB863";
+
+  // Ensure the tooltip exists.
+  if (d3.select("#tooltip").empty()) {
+    d3.select("body")
+      .append("div")
+      .attr("id", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0)
+      .style("pointer-events", "none");
+  }
+
+  // Append a circle for subject 26 with the same interactive behavior.
+  svg.append("circle")
+    .datum(subject26)
+    .attr("cx", subject26.x)
+    .attr("cy", subject26.y)
+    .attr("r", subject26.size)
+    .attr("fill", prediabeticColor)
+    .on("mouseover", function(event, d) {
+      d3.select("#tooltip")
+        .style("display", "block")
+        .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+      d3.select("#tooltip")
+        .html(`
+          <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+          <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
+          <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
+          <div style="text-align: left;">Average METs: ${d.avgMETs}</div>
+          <div style="text-align: left;">Average HR: ${d.avgHR}</div>
+          <div style="text-align: left;">Glucose range: ${d.minGL}-${d.maxGL}</div>
+        `)
+        .style("left", (event.pageX + 5) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      d3.select("#tooltip")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .on("end", function() {
+          d3.select(this).style("display", "none");
+        });
+    })
+    .on("click", handleDotClick); // Assumes handleDotClick is defined globally.
+}
+
+// Call the function to render the starter dot.
+plotStarterDot();
+
 
 
   // const simulation = d3.forceSimulation(nodes)
@@ -505,7 +769,121 @@ slider.addEventListener('input', function() {
   // .on("mouseout", function() {
   //      tooltip.style("opacity", 0);
   // });
+  function lightenColor(col, factor = 0.5) {
+    // Convert the color to an RGB object.
+    let c = d3.rgb(col);
+    // Increase each channel based on the difference to 255.
+    c.r = Math.round(c.r + (255 - c.r) * factor);
+    c.g = Math.round(c.g + (255 - c.g) * factor);
+    c.b = Math.round(c.b + (255 - c.b) * factor);
+    return c.toString();
+  }
 
+  function handleDotClick(event, d) {
+    // Clean up any previous details view.
+    d3.selectAll("#subject-details").remove();
+    d3.selectAll("#go-back-arrow").remove();
+    d3.selectAll("#scroll-down-arrow").remove();
+    window.removeEventListener("wheel", backScrollHandler);
+  
+    d3.select("#tooltip")
+    .interrupt()
+    .style("opacity", 0)
+    .style("display", "none");
+    
+    // Hide the info section so it doesn’t affect scrolling.
+    d3.select("#info-section").style("display", "none");
+    
+    // Get the dot's base color and compute a lighter version.
+    const dotColor = color(d.Diabetes);
+    const lighterColor = lightenColor(dotColor, 0.5); // adjust factor as needed
+  
+    // Transition the page background to the lighter color.
+    d3.select("body")
+      .transition()
+      .duration(500)
+      .style("background-color", lighterColor);
+  
+    // Fade out the main visualization elements (grid and header),
+    // then hide them so they can be restored later by resetMainView().
+    d3.select("#grid")
+      .transition()
+      .duration(500)
+      .style("opacity", 0)
+      .on("end", () => {
+        d3.select("#grid").style("display", "none");
+        d3.select("h1").style("display", "none");
+  
+        // Inject bounce animation CSS if not already injected.
+        if (d3.select("#bounce-style").empty()) {
+          d3.select("head")
+            .append("style")
+            .attr("id", "bounce-style")
+            .html(`
+              @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                40% { transform: translateY(-10px); }
+                60% { transform: translateY(-5px); }
+              }
+            `);
+        }
+  
+        // Append the details container with initial opacity 0.
+        const details = d3.select("body")
+          .append("div")
+          .attr("id", "subject-details")
+          .html(`
+            <h1>Subject ${d.subject}</h1>
+            <div>
+              <p>Diabetes: ${d.Diabetes}</p>
+              <p>Total Calories: ${d.totalCalories}</p>
+              <p>Average METs: ${d.avgMETs !== undefined ? Number(d.avgMETs).toFixed(2) : 'N/A'}</p>
+              <p>Average HR: ${d.avgHR !== undefined ? Number(d.avgHR).toFixed(2) : 'N/A'}</p>
+              <!-- Add more subject-specific content here -->
+            </div>
+          `)
+          .style("position", "absolute")
+          .style("top", "50%")
+          .style("left", "50%")
+          .style("transform", "translate(-50%, -50%)")
+          .style("color", "black")
+          .style("font-size", "1em")
+          .style("text-align", "center")
+          .style("opacity", 0);
+  
+        // Fade in the details.
+        details.transition()
+          .duration(1000)
+          .style("opacity", 1);
+  
+        // Append the back arrow with bounce animation and tooltip.
+        d3.select("body")
+          .append("div")
+          .attr("id", "go-back-arrow")
+          .style("position", "fixed")
+          .style("bottom", "20px")
+          .style("left", "50%")
+          .style("transform", "translateX(-50%)")
+          .style("text-align", "center")
+          .html(`
+            <div style="font-size: 32px; animation: bounce 1s infinite;">&#8595;</div>
+            <div id="arrow-tooltip" style="font-size: 14px; opacity: 0;">Scroll down to go back</div>
+          `);
+  
+        // Fade the arrow tooltip in then out.
+        d3.select("#arrow-tooltip")
+          .transition()
+          .duration(1000)
+          .style("opacity", 1)
+          .transition()
+          .delay(3000)
+          .duration(1000)
+          .style("opacity", 0);
+  
+        // Add the global wheel event listener for going back.
+        window.addEventListener("wheel", backScrollHandler);
+      });
+  }
 
 function plotData() {
   const width = 1000;
@@ -516,10 +894,6 @@ function plotData() {
                 .attr("width", width)
                 .attr("height", height);
 
-  // Define a color scale for the Diabetes values
-  const color = d3.scaleOrdinal()
-    .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
-    .range(["#2C7BB6", "#FDB863", "#D7191C"]);
 
   // Arrange groups vertically by having the same x center but different y centers
   const healthyCenter = { x: centerX - 300, y: centerY };
@@ -677,111 +1051,6 @@ function plotData() {
       .style("pointer-events", "none");
   }
 
-function handleDotClick(event, d) {
-  // Clean up any previous details view.
-  d3.selectAll("#subject-details").remove();
-  d3.selectAll("#go-back-arrow").remove();
-  d3.selectAll("#scroll-down-arrow").remove();
-  window.removeEventListener("wheel", backScrollHandler);
-
-  d3.select("#tooltip")
-  .interrupt()
-  .style("opacity", 0)
-  .style("display", "none");
-  
-  // Hide the info section so it doesn’t affect scrolling.
-  d3.select("#info-section").style("display", "none");
-  
-  // Get the dot's base color and compute a lighter version.
-  const dotColor = color(d.Diabetes);
-  const lighterColor = lightenColor(dotColor, 0.5); // adjust factor as needed
-
-  // Transition the page background to the lighter color.
-  d3.select("body")
-    .transition()
-    .duration(500)
-    .style("background-color", lighterColor);
-
-  // Fade out the main visualization elements (grid and header),
-  // then hide them so they can be restored later by resetMainView().
-  d3.select("#grid")
-    .transition()
-    .duration(500)
-    .style("opacity", 0)
-    .on("end", () => {
-      d3.select("#grid").style("display", "none");
-      d3.select("h1").style("display", "none");
-
-      // Inject bounce animation CSS if not already injected.
-      if (d3.select("#bounce-style").empty()) {
-        d3.select("head")
-          .append("style")
-          .attr("id", "bounce-style")
-          .html(`
-            @keyframes bounce {
-              0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-              40% { transform: translateY(-10px); }
-              60% { transform: translateY(-5px); }
-            }
-          `);
-      }
-
-      // Append the details container with initial opacity 0.
-      const details = d3.select("body")
-        .append("div")
-        .attr("id", "subject-details")
-        .html(`
-          <h1>Subject ${d.subject}</h1>
-          <div>
-            <p>Diabetes: ${d.Diabetes}</p>
-            <p>Total Calories: ${d.totalCalories}</p>
-            <p>Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</p>
-            <p>Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</p>
-            <!-- Add more subject-specific content here -->
-          </div>
-        `)
-        .style("position", "absolute")
-        .style("top", "50%")
-        .style("left", "50%")
-        .style("transform", "translate(-50%, -50%)")
-        .style("color", "black")
-        .style("font-size", "1em")
-        .style("text-align", "center")
-        .style("opacity", 0);
-
-      // Fade in the details.
-      details.transition()
-        .duration(1000)
-        .style("opacity", 1);
-
-      // Append the back arrow with bounce animation and tooltip.
-      d3.select("body")
-        .append("div")
-        .attr("id", "go-back-arrow")
-        .style("position", "fixed")
-        .style("bottom", "20px")
-        .style("left", "50%")
-        .style("transform", "translateX(-50%)")
-        .style("text-align", "center")
-        .html(`
-          <div style="font-size: 32px; animation: bounce 1s infinite;">&#8595;</div>
-          <div id="arrow-tooltip" style="font-size: 14px; opacity: 0;">Scroll down to go back</div>
-        `);
-
-      // Fade the arrow tooltip in then out.
-      d3.select("#arrow-tooltip")
-        .transition()
-        .duration(1000)
-        .style("opacity", 1)
-        .transition()
-        .delay(3000)
-        .duration(1000)
-        .style("opacity", 0);
-
-      // Add the global wheel event listener for going back.
-      window.addEventListener("wheel", backScrollHandler);
-    });
-}
 
   // Healthy circles click handler.
   // Example update for healthy circles tooltip:
@@ -912,15 +1181,6 @@ groupLabels.forEach(g => {
 });
 }
 
-function lightenColor(col, factor = 0.5) {
-  // Convert the color to an RGB object.
-  let c = d3.rgb(col);
-  // Increase each channel based on the difference to 255.
-  c.r = Math.round(c.r + (255 - c.r) * factor);
-  c.g = Math.round(c.g + (255 - c.g) * factor);
-  c.b = Math.round(c.b + (255 - c.b) * factor);
-  return c.toString();
-}
 
 // Load one subject's CSV and compute its metrics.
 async function loadSubjectData(subjectNumber) {
@@ -1237,16 +1497,10 @@ function plotGLRange() {
   if (!window.subjectMetricsResults) {
     console.error("Subject metrics not loaded yet.");
     return;
-}
-  // Re-read slider values (with defaults)
-  const userMinGL = window.userGlucoseMin ? window.userGlucoseMin() : 40;
-  const userMaxGL = window.userGlucoseMax ? window.userGlucoseMax() : 500;
+  }
 
-  // Define the diabetes groups (must match your data grouping)
+  // Define diabetes groups and sort subjects.
   const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-
-  // Obtain sorted subjects from your global subject metrics.
-  // (Assumes window.subjectMetricsResults has been set previously.)
   const sortedSubjects = window.subjectMetricsResults.slice().sort((a, b) => {
     if (a.Diabetes !== b.Diabetes) {
       return groups.indexOf(a.Diabetes) - groups.indexOf(b.Diabetes);
@@ -1255,24 +1509,21 @@ function plotGLRange() {
   });
   window.sortedSubjects = sortedSubjects;
 
-  // Create a responsive SVG (assumes createResponsiveSVG exists)
+  // Create a responsive SVG in the container.
   const { svg, width, height, margin } = createResponsiveSVG("#glrange-container", { top: 40, right: 30, bottom: 40, left: 100 });
   window.svg = svg;
 
+  // Build a new domain that interleaves gap markers between groups.
   const newDomain = [];
-
-  window.newDomain = newDomain;
-  
-  // Build a new y-scale domain that interleaves gap markers between groups
   for (let i = 0; i < sortedSubjects.length; i++) {
-    // If this is the first subject or a new group, add a gap marker first.
     if (i === 0 || sortedSubjects[i].Diabetes !== sortedSubjects[i - 1].Diabetes) {
-      newDomain.push(`gap-${sortedSubjects[i].Diabetes}`);
+      newDomain.push("gap-" + sortedSubjects[i].Diabetes);
     }
     newDomain.push(sortedSubjects[i].subject);
   }
+  window.newDomain = newDomain;
 
-  // Create scales using the new domain.
+  // Create y and x scales.
   const yScale = d3.scaleBand()
     .domain(newDomain)
     .range([0, height])
@@ -1288,41 +1539,56 @@ function plotGLRange() {
     .nice();
   window.xScale = xScale;
 
-
   // Draw axes.
   svg.append("g")
     .attr("transform", `translate(0, ${height})`)
     .call(d3.axisBottom(xScale));
 
-  // For the y-axis, filter out gap markers in the tick format.
   svg.append("g")
     .call(d3.axisLeft(yScale)
       .tickFormat(d => d.toString().startsWith("gap-") ? "" : d));
 
-  // Compute each group's average min and max.
+  // (Optional) Compute the predicted group and update the title.
   const groupAverageGL = groups.map(group => {
     const groupData = sortedSubjects.filter(d => d.Diabetes === group);
-    const avgMin = d3.mean(groupData, d => +d.minGL);
-    const avgMax = d3.mean(groupData, d => +d.maxGL);
-    return { group, avgMin, avgMax };
+    return { group, avgMin: d3.mean(groupData, d => +d.minGL), avgMax: d3.mean(groupData, d => +d.maxGL) };
   });
-
-  // Determine the predicted group (smallest total distance).
-  let bestGroup = groupAverageGL[0];
-  let bestDiff = Infinity;
+  let bestGroup = groupAverageGL[0],
+      bestDiff = Infinity;
   groupAverageGL.forEach(g => {
-    const diff = Math.abs(g.avgMin - userMinGL) + Math.abs(g.avgMax - userMaxGL);
+    const diff = Math.abs(g.avgMin - (window.userGlucoseMin ? window.userGlucoseMin() : 40)) +
+                 Math.abs(g.avgMax - (window.userGlucoseMax ? window.userGlucoseMax() : 410));
     if (diff < bestDiff) {
       bestDiff = diff;
       bestGroup = g;
     }
   });
+  let container = d3.select("#glrange-container");
+  let titleEl = container.select("#predicted-group-title");
+  if (titleEl.empty()) {
+    titleEl = container.append("div")
+      .attr("id", "predicted-group-title")
+      .style("position", "absolute")
+      .style("top", "10px")
+      .style("left", "50%")
+      .style("transform", "translateX(-50%)")
+      .style("text-align", "center")
+      .style("font-size", "16px")
+      .style("font-weight", "bold")
+      .style("pointer-events", "none");
+  }
+  titleEl.text(`Your predicted group: ${bestGroup.group}`);
 
-  // Draw background highlighting for the predicted group.
+  // (Optional) Compute overlayY for user-input overlay (not our primary concern here).
+  const groupDataForOverlay = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
+  const overlayY = groupDataForOverlay.length > 0 ?
+      d3.mean(groupDataForOverlay, d => yScale(d.subject) + yScale.bandwidth() / 2) :
+      d3.max(sortedSubjects, d => yScale(d.subject)) + yScale.bandwidth() + 30;
+
+  // Draw background highlight for the predicted group.
   const backgroundGroup = svg.insert("g", ":first-child").attr("class", "background");
-  const color = d3.scaleOrdinal()
-    .domain(groups) 
-    .range(["#2C7BB6", "#FDB863", "#D7191C"]);
+  const color = d3.scaleOrdinal().domain(groups)
+      .range(["#2C7BB6", "#FDB863", "#D7191C"]);
   function lightenColor2(col, factor = 0.7) {
     let c = d3.rgb(col);
     c.r = Math.round(c.r + (255 - c.r) * factor);
@@ -1344,11 +1610,27 @@ function plotGLRange() {
       .attr("opacity", 0.5);
   }
 
-  // Create a foreground group for subjects and overlays.
+  // Create a foreground group.
   const foregroundGroup = svg.append("g").attr("class", "foreground");
   window.foregroundGroup = foregroundGroup;
 
-  // Draw subject glucose range lines.
+  // ********************
+  // Create the tooltip element (remove any previous instance).
+  d3.select("#gl-tooltip").remove(); 
+  const glTooltip = d3.select("body")
+    .append("div")
+    .attr("id", "gl-tooltip")
+    .style("position", "absolute")
+    .style("background", "rgba(255,255,255,0.9)")
+    .style("border", "1px solid black")
+    .style("padding", "8px")
+    .style("border-radius", "4px")
+    .style("pointer-events", "none")
+    .style("display", "none")
+    .style("font-size", "12px");
+
+  // ********************
+  // Draw subject glucose range lines (optional tooltip on lines).
   foregroundGroup.selectAll("line.gl-range")
     .data(sortedSubjects)
     .enter()
@@ -1359,9 +1641,24 @@ function plotGLRange() {
     .attr("y1", d => yScale(d.subject) + yScale.bandwidth() / 2)
     .attr("y2", d => yScale(d.subject) + yScale.bandwidth() / 2)
     .attr("stroke", "gray")
-    .attr("stroke-width", 2);
+    .attr("stroke-width", 2)
+    .on("mouseover", function(event, d) {
+      glTooltip.style("display", "block")
+        .html(`<strong>Subject: ${d.subject}</strong><br>Min GL: ${d.minGL}<br>Max GL: ${d.maxGL}`);
+    })
+    .on("mousemove", function(event, d) {
+      const bbox = this.getBoundingClientRect();
+      const tooltipX = bbox.x + bbox.width / 2;
+      const tooltipY = bbox.y;
+      glTooltip.style("left", tooltipX + "px")
+               .style("top", (tooltipY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      glTooltip.style("display", "none");
+    });
 
-  // Draw subject dots.
+  // ********************
+  // Draw the min and max dots with tooltip event handlers that show the tooltip when hovered directly.
   foregroundGroup.selectAll("circle.min-gl")
     .data(sortedSubjects)
     .enter()
@@ -1370,7 +1667,21 @@ function plotGLRange() {
     .attr("cx", d => xScale(Math.max(d.minGL, 40)))
     .attr("cy", d => yScale(d.subject) + yScale.bandwidth() / 2)
     .attr("r", 5)
-    .attr("fill", d => color(d.Diabetes));
+    .attr("fill", d => color(d.Diabetes))
+    .on("mouseover", function(event, d) {
+      glTooltip.style("display", "block")
+        .html(`<strong>Subject: ${d.subject}</strong><br>Min GL: ${d.minGL}`);
+    })
+    .on("mousemove", function(event, d) {
+      const bbox = this.getBoundingClientRect();
+      const tooltipX = bbox.x + bbox.width / 2;
+      const tooltipY = bbox.y;
+      glTooltip.style("left", tooltipX + "px")
+               .style("top", (tooltipY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      glTooltip.style("display", "none");
+    });
 
   foregroundGroup.selectAll("circle.max-gl")
     .data(sortedSubjects)
@@ -1380,44 +1691,31 @@ function plotGLRange() {
     .attr("cx", d => xScale(d.maxGL))
     .attr("cy", d => yScale(d.subject) + yScale.bandwidth() / 2)
     .attr("r", 5)
-    .attr("fill", d => color(d.Diabetes));
+    .attr("fill", d => color(d.Diabetes))
+    .on("mouseover", function(event, d) {
+      glTooltip.style("display", "block")
+        .html(`<strong>Subject: ${d.subject}</strong><br>Max GL: ${d.maxGL}`);
+    })
+    .on("mousemove", function(event, d) {
+      const bbox = this.getBoundingClientRect();
+      const tooltipX = bbox.x + bbox.width / 2;
+      const tooltipY = bbox.y;
+      glTooltip.style("left", tooltipX + "px")
+               .style("top", (tooltipY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      glTooltip.style("display", "none");
+    });
 
-  // Update the predicted group title (assumes an element with id "predicted-group-title" exists).
-  // Instead of inserting into the container normally, use absolute positioning.
-  let container = d3.select("#glrange-container");
-
-  // Check if the predicted group title already exists.
-  let titleEl = container.select("#predicted-group-title");
-  if (titleEl.empty()) {
-    // Append the title element inside the container
-    titleEl = container.append("div")
-      .attr("id", "predicted-group-title")
-      .style("position", "absolute")
-      .style("top", "10px")        // Adjust top as needed
-      .style("left", "50%")
-      .style("transform", "translateX(-50%)")
-      .style("text-align", "center")
-      .style("font-size", "16px")
-      .style("font-weight", "bold")
-      .style("pointer-events", "none"); // So it doesn't block interactions
-  }
-  titleEl.text(`Your predicted group: ${bestGroup.group}`);
-
-
-  // Determine vertical position for the overlay – use the center of subjects in the predicted group.
-  const groupDataForOverlay = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-  const overlayY = groupDataForOverlay.length
-    ? d3.mean(groupDataForOverlay, d => yScale(d.subject) + yScale.bandwidth() / 2)
-    : d3.max(sortedSubjects, d => yScale(d.subject)) + yScale.bandwidth() + 30;
-
-  // Prepare overlay data.
+  // (Optional) Draw overlay elements for user input (line, dots, label)
+  const userMinGL = window.userGlucoseMin ? window.userGlucoseMin() : 40;
+  const userMaxGL = window.userGlucoseMax ? window.userGlucoseMax() : 410;
   const overlayData = [{ min: userMinGL, max: userMaxGL, y: overlayY }];
-  // Draw overlay line.
-  const line = foregroundGroup.selectAll("line.user-glucose-line").data(overlayData);
-  line.enter()
+  const overlayLine = foregroundGroup.selectAll("line.user-glucose-line").data(overlayData);
+  overlayLine.enter()
     .append("line")
     .attr("class", "user-glucose-line")
-    .merge(line)
+    .merge(overlayLine)
     .transition().duration(300)
     .attr("x1", d => xScale(d.min))
     .attr("x2", d => xScale(d.max))
@@ -1425,40 +1723,38 @@ function plotGLRange() {
     .attr("y2", d => d.y)
     .attr("stroke", "black")
     .attr("stroke-width", 2);
-  line.exit().remove();
+  overlayLine.exit().remove();
 
-  // Draw overlay dots.
-  const dotsData = [
+  const overlayDotsData = [
     { cx: userMinGL, y: overlayY },
     { cx: userMaxGL, y: overlayY }
   ];
-  const dots = foregroundGroup.selectAll("circle.user-glucose-dot").data(dotsData);
-  dots.enter()
+  const overlayDots = foregroundGroup.selectAll("circle.user-glucose-dot").data(overlayDotsData);
+  overlayDots.enter()
     .append("circle")
     .attr("class", "user-glucose-dot")
-    .merge(dots)
+    .merge(overlayDots)
     .transition().duration(300)
     .attr("cx", d => xScale(d.cx))
     .attr("cy", d => d.y)
     .attr("r", 5)
     .attr("fill", "black");
-  dots.exit().remove();
+  overlayDots.exit().remove();
 
-  // Draw overlay label.
-  const label = foregroundGroup.selectAll("text.user-input-label").data(overlayData);
-  label.enter()
+  const overlayLabel = foregroundGroup.selectAll("text.user-input-label").data(overlayData);
+  overlayLabel.enter()
     .append("text")
     .attr("class", "user-input-label")
-    .merge(label)
+    .merge(overlayLabel)
     .transition().duration(300)
     .attr("x", -10)
     .attr("y", d => d.y + 5)
     .attr("text-anchor", "end")
     .style("font-size", "12px")
     .style("font-weight", "bold")
-    .style("fill", color(bestGroup.group)) // Use best group's color
+    .style("fill", color(bestGroup.group))
     .text("Your input");
-  label.exit().remove();
+  overlayLabel.exit().remove();
 }
 
 
@@ -1870,37 +2166,12 @@ function computeMacroAverages(data) {
 }
 
 function renderMacroPieChart(macroAverages) {
-  const width = 450, height = 450, radius = Math.min(width, height) / 2.5;
+  const containerWidth = 1000; // Width of the container for all pie charts
+  const chartWidth = 300; // Width of each pie chart
+  const chartHeight = 300; // Height of each pie chart
+  const radius = Math.min(chartWidth, chartHeight) / 2.5; // Radius of each pie chart
 
-  // Clear previous content
-  d3.select("#macroPieChartContainer").html("");
-
-  // Add Title - Styled professionally
-  const title = d3.select("#macroPieChartContainer")
-    .append("h2")
-    .attr("id", "macroPieChartTitle")
-    .style("text-align", "left")
-    .style("margin-bottom", "12px")
-    .style("font-size", "22px")
-    .style("color", "#333")
-    .style("font-weight", "600")
-    .text("Comparing Macronutrient Distributions");
-
-  // SVG Container
-  const svg = d3.select("#macroPieChartContainer")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height)
-    .append("g")
-    .attr("transform", `translate(${width / 2}, ${height / 2})`);
-
-  // Color Scale with Transparency
-  const color = d3.scaleOrdinal(["rgba(179, 158, 181, 0.7)",   // Mauve for Carbs
-    "rgba(136, 176, 75, 0.7)",    // Sage Green for Protein
-    "rgba(224, 122, 95, 0.7)",    
-    "rgba(152, 176, 243, 0.7)" ]); 
-
-  // Tooltip
+  // Create a shared tooltip for all charts
   const tooltip = d3.select("body")
     .append("div")
     .attr("class", "tooltip")
@@ -1911,111 +2182,255 @@ function renderMacroPieChart(macroAverages) {
     .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.2)")
     .style("pointer-events", "none")
     .style("opacity", 0);
-    const formatMacroName = (macro) => {
-      return macro.replace("avg", "").toLowerCase();
-    };
-    function updateChart(selectedGroup) {
-      const data = macroAverages.find(d => d.group === selectedGroup)?.macroAverages || [];
-      const pie = d3.pie().value(d => d.average)(data);
-      const arc = d3.arc().innerRadius(50).outerRadius(radius);
-    
-      // Bind data to path elements
-      const path = svg.selectAll("path").data(pie);
-    
-      // Enter + Update paths
-      const pathEnter = path.enter().append("path")
-        .attr("d", arc) // set initial shape
-        .attr("fill", (d, i) => color(i))
-        .attr("stroke", "#fff")
-        .style("stroke-width", "2px")
-        .style("opacity", 0.9);
-    
-      // Merge new and existing paths
-      const allPaths = pathEnter.merge(path);
-    
-      // Bind event listeners to the DOM elements (not the transition).
-      allPaths
-        .on("mouseover", function (event, d) {
-          // Highlight the segment by increasing its size (pop-out effect)
-          d3.select(this)
-            .transition()
-            .duration(200)
-            .attr("d", d3.arc().innerRadius(50).outerRadius(radius + 15));
-          // Show tooltip with macro values.
-          tooltip.style("opacity", 1)
+
+  // Color scale with transparency
+  const color = d3.scaleOrdinal([
+    "rgba(179, 158, 181, 0.7)",  // Mauve for Carbs
+    "rgba(136, 176, 75, 0.7)",   // Sage Green for Protein
+    "rgba(224, 122, 95, 0.7)",   // e.g., for Fat
+    "rgba(152, 176, 243, 0.7)"   // e.g., for Fiber
+  ]);
+
+  // Helper to format macro names
+  const formatMacroName = (macro) => macro.replace("avg", "").toLowerCase();
+
+  // Create a container for all pie charts
+  const container = d3.select("#macroPieChartContainer")
+    .style("width", `${containerWidth}px`)
+    .style("margin", "0 auto")
+    .style("display", "flex")
+    .style("justify-content", "space-between"); // Arrange pie charts horizontally
+
+  // For each group in macroAverages, create its own chart container and render a pie chart.
+  macroAverages.forEach((groupData, index) => {
+    const totalValue = d3.sum(groupData.macroAverages, d => d.average);
+    // Create a container div for this group's pie chart.
+    const chartContainer = container.append("div")
+      .attr("class", "chart-container")
+      .style("width", `${chartWidth}px`)
+      .style("text-align", "center");
+
+    // Add Title for this chart.
+    chartContainer.append("h2")
+      .attr("class", "macroPieChartTitle")
+      .style("font-size", "18px")
+      .style("color", "#333")
+      .style("font-weight", "600")
+      .text(`${groupData.group}`);
+
+    // Create the SVG container for this chart.
+    const svg = chartContainer.append("svg")
+      .attr("width", chartWidth)
+      .attr("height", chartHeight)
+      .attr("viewBox", `0 0 ${chartWidth} ${chartHeight}`) // Set viewBox to match width and height
+      .append("g")
+      .attr("transform", `translate(${chartWidth / 2}, ${chartHeight / 2})`); // Center the pie chart
+
+    // Create pie and arc generators
+    const pie = d3.pie().value(d => d.average)(groupData.macroAverages);
+    const arc = d3.arc().innerRadius(50).outerRadius(radius);
+
+    // Draw the arcs
+    svg.selectAll("path")
+      .data(pie)
+      .enter()
+      .append("path")
+      .attr("d", arc)
+      .attr("fill", (d, i) => color(i))
+      .attr("stroke", "#fff")
+      .style("stroke-width", "2px")
+      .style("opacity", 0.9)
+      .on("mouseover", function(event, d) {
+        // Increase the arc radius for a pop-out effect
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("d", d3.arc().innerRadius(50).outerRadius(radius + 15));
+        // Show tooltip with macro values.
+        tooltip.style("opacity", 1)
           .html(`
             ${d.data.macro === "avgProtein" ? "Protein 🥩" : 
               d.data.macro === "avgCarbs" ? "Carbohydrates 🍞" : 
               d.data.macro === "avgFat" ? "Fats 🥑" : 
               d.data.macro === "avgFiber" ? "Fiber 🫛" : d.data.macro}<br/>
-              Average: ${d.data.average.toFixed(2)}<br/>
-              Group: ${selectedGroup}
-            `)
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", function (event, d) {
-          // Return the segment to its original size.
-          d3.select(this)
-            .transition()
-            .duration(200)
-            .attr("d", arc);
-          // Hide tooltip.
-          tooltip.style("opacity", 0);
-        });
-    
-      // Now, apply the smooth transition to update attributes.
-      allPaths.transition().duration(700)
-        .attr("d", arc)
-        .attr("fill", (d, i) => color(i))
-        .attr("stroke", "#fff")
-        .style("stroke-width", "2px")
-        .style("opacity", 0.9);
-    
-      // Remove any old elements.
-      path.exit().remove();
-    
-      // Update text labels.
-      const text = svg.selectAll("text").data(pie);
-    
-      // Enter + Update text labels
-      const textEnter = text.enter().append("text")
-        .attr("text-anchor", "middle")
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .attr("fill", "white");
-    
-      // Merge new and existing text labels
-      textEnter.merge(text)
-        .text(d => `${formatMacroName(d.data.macro)}: (${d.data.average.toFixed(1)}g)`)
-        .transition().duration(500)
-        .attr("transform", d => `translate(${arc.centroid(d)})`);
-    
-      // Remove any old text elements.
-      text.exit().remove();
-    
-      // Update Title Based on Selected Group.
-      title.text(`Comparing Daily Macronutrient Distribution: ${selectedGroup}`)
-        .style("font-weight", "bold");
-    }
-    svg.append("defs")
-    .append("filter")
-    .attr("id", "shadow")
-    .append("feDropShadow")
-    .attr("dx", 2)
-    .attr("dy", 2)
-    .attr("stdDeviation", 3)
-    .attr("flood-color", "rgba(0, 0, 0, 0.5)");
+            Average: ${d.data.average.toFixed(2)}<br/>
+            Group: ${groupData.group}
+          `)
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 28) + "px");
+      })
+      .on("mouseout", function(event, d) {
+        // Return the arc to its original size.
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("d", arc);
+        // Hide tooltip.
+        tooltip.style("opacity", 0);
+      });
 
-  // Listen for changes in diabetes group selector
-  document.getElementById('slider-group').addEventListener('change', function() {
-    window.selectedDiabetesGroup = this.value;
-    updateChart(window.selectedDiabetesGroup);
+    // Add text labels to the arcs.
+    svg.selectAll("text")
+      .data(pie)
+      .enter()
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("font-size", "12px")
+      .attr("font-weight", "bold")
+      .attr("fill", "white")
+      .text(d => `${formatMacroName(d.data.macro)}\n${((d.data.average / totalValue) * 100).toFixed(1)}%`)
+      .attr("transform", d => `translate(${arc.centroid(d)})`);
   });
-
-  // Initialize with default selection
-  updateChart(document.getElementById('slider-group').value);
 }
+
+
+// function renderMacroPieChart(macroAverages) {
+//   const width = 450, height = 450, radius = Math.min(width, height) / 2.5;
+
+//   // Clear previous content
+//   d3.select("#macroPieChartContainer").html("");
+
+//   // Add Title - Styled professionally
+//   const title = d3.select("#macroPieChartContainer")
+//     .append("h2")
+//     .attr("id", "macroPieChartTitle")
+//     .style("text-align", "left")
+//     .style("margin-bottom", "12px")
+//     .style("font-size", "22px")
+//     .style("color", "#333")
+//     .style("font-weight", "600")
+//     .text("Comparing Macronutrient Distributions");
+
+//   // SVG Container
+//   const svg = d3.select("#macroPieChartContainer")
+//     .append("svg")
+//     .attr("width", width)
+//     .attr("height", height)
+//     .append("g")
+//     .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+//   // Color Scale with Transparency
+//   const color = d3.scaleOrdinal(["rgba(179, 158, 181, 0.7)",   // Mauve for Carbs
+//     "rgba(136, 176, 75, 0.7)",    // Sage Green for Protein
+//     "rgba(224, 122, 95, 0.7)",    
+//     "rgba(152, 176, 243, 0.7)" ]); 
+
+//   // Tooltip
+//   const tooltip = d3.select("body")
+//     .append("div")
+//     .attr("class", "tooltip")
+//     .style("position", "absolute")
+//     .style("background", "rgba(255, 255, 255, 0.9)")
+//     .style("padding", "8px")
+//     .style("border-radius", "4px")
+//     .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.2)")
+//     .style("pointer-events", "none")
+//     .style("opacity", 0);
+//     const formatMacroName = (macro) => {
+//       return macro.replace("avg", "").toLowerCase();
+//     };
+//     function updateChart(selectedGroup) {
+//       const data = macroAverages.find(d => d.group === selectedGroup)?.macroAverages || [];
+//       const pie = d3.pie().value(d => d.average)(data);
+//       const arc = d3.arc().innerRadius(50).outerRadius(radius);
+    
+//       // Bind data to path elements
+//       const path = svg.selectAll("path").data(pie);
+    
+//       // Enter + Update paths
+//       const pathEnter = path.enter().append("path")
+//         .attr("d", arc) // set initial shape
+//         .attr("fill", (d, i) => color(i))
+//         .attr("stroke", "#fff")
+//         .style("stroke-width", "2px")
+//         .style("opacity", 0.9);
+    
+//       // Merge new and existing paths
+//       const allPaths = pathEnter.merge(path);
+    
+//       // Bind event listeners to the DOM elements (not the transition).
+//       allPaths
+//         .on("mouseover", function (event, d) {
+//           // Highlight the segment by increasing its size (pop-out effect)
+//           d3.select(this)
+//             .transition()
+//             .duration(200)
+//             .attr("d", d3.arc().innerRadius(50).outerRadius(radius + 15));
+//           // Show tooltip with macro values.
+//           tooltip.style("opacity", 1)
+//           .html(`
+//             ${d.data.macro === "avgProtein" ? "Protein 🥩" : 
+//               d.data.macro === "avgCarbs" ? "Carbohydrates 🍞" : 
+//               d.data.macro === "avgFat" ? "Fats 🥑" : 
+//               d.data.macro === "avgFiber" ? "Fiber 🫛" : d.data.macro}<br/>
+//               Average: ${d.data.average.toFixed(2)}<br/>
+//               Group: ${selectedGroup}
+//             `)
+//             .style("left", (event.pageX + 10) + "px")
+//             .style("top", (event.pageY - 28) + "px");
+//         })
+//         .on("mouseout", function (event, d) {
+//           // Return the segment to its original size.
+//           d3.select(this)
+//             .transition()
+//             .duration(200)
+//             .attr("d", arc);
+//           // Hide tooltip.
+//           tooltip.style("opacity", 0);
+//         });
+    
+//       // Now, apply the smooth transition to update attributes.
+//       allPaths.transition().duration(700)
+//         .attr("d", arc)
+//         .attr("fill", (d, i) => color(i))
+//         .attr("stroke", "#fff")
+//         .style("stroke-width", "2px")
+//         .style("opacity", 0.9);
+    
+//       // Remove any old elements.
+//       path.exit().remove();
+    
+//       // Update text labels.
+//       const text = svg.selectAll("text").data(pie);
+    
+//       // Enter + Update text labels
+//       const textEnter = text.enter().append("text")
+//         .attr("text-anchor", "middle")
+//         .attr("font-size", "14px")
+//         .attr("font-weight", "bold")
+//         .attr("fill", "white");
+    
+//       // Merge new and existing text labels
+//       textEnter.merge(text)
+//         .text(d => `${formatMacroName(d.data.macro)}: (${d.data.average.toFixed(1)}g)`)
+//         .transition().duration(500)
+//         .attr("transform", d => `translate(${arc.centroid(d)})`);
+    
+//       // Remove any old text elements.
+//       text.exit().remove();
+    
+//       // Update Title Based on Selected Group.
+//       title.text(`Comparing Daily Macronutrient Distribution: ${selectedGroup}`)
+//         .style("font-weight", "bold");
+//     }
+//     svg.append("defs")
+//     .append("filter")
+//     .attr("id", "shadow")
+//     .append("feDropShadow")
+//     .attr("dx", 2)
+//     .attr("dy", 2)
+//     .attr("stdDeviation", 3)
+//     .attr("flood-color", "rgba(0, 0, 0, 0.5)");
+
+//   // Listen for changes in diabetes group selector
+//   document.getElementById('slider-group').addEventListener('change', function() {
+//     window.selectedDiabetesGroup = this.value;
+//     updateChart(window.selectedDiabetesGroup);
+//   });
+
+//   // Initialize with default selection
+//   updateChart(document.getElementById('slider-group').value);
+// }
 
 
 
@@ -2244,4 +2659,87 @@ window.addEventListener("resize", () => {
   plotGLRange();
   // Repeat for other plots…
 });
+
+// This function updates the glucose prediction text.
+function updateGlucosePrediction() {
+  const minGlucose = document.getElementById('slider-glucose-min-value').textContent;
+  const maxGlucose = document.getElementById('slider-glucose-max-value').textContent;
+  const predictionGlucoseEl = document.getElementById('prediction-glucose');
+  if (predictionGlucoseEl) {
+    predictionGlucoseEl.innerHTML = `Your Glucose Range: <strong>${minGlucose}</strong> - <strong>${maxGlucose}</strong> mg/dL`;
+  }
+}
+
+// This function sets up event listeners for the custom glucose slider thumbs.
+function setupGlucoseSlider() {
+  const slider = document.querySelector('.range-slider');
+  const minValue = 40;    // Define your minimum glucose value.
+  const maxValue = 410;   // Define your maximum glucose value.
+  
+  // --- For the minimum slider thumb ---
+  const thumbMin = document.getElementById('thumb-min');
+  let isDraggingMin = false;
+  
+  thumbMin.addEventListener('mousedown', function(e) {
+    isDraggingMin = true;
+    document.addEventListener('mousemove', onMouseMoveMin);
+    document.addEventListener('mouseup', onMouseUpMin);
+  });
+  
+  function onMouseMoveMin(e) {
+    if (!isDraggingMin) return;
+    const sliderRect = slider.getBoundingClientRect();
+    // Calculate the horizontal position within the slider:
+    let pos = e.clientX - sliderRect.left;
+    // Constrain the position:
+    pos = Math.max(0, Math.min(pos, sliderRect.width));
+    // Map the position to the glucose range:
+    const newMinValue = minValue + (pos / sliderRect.width) * (maxValue - minValue);
+    document.getElementById('slider-glucose-min-value').textContent = newMinValue.toFixed(2);
+    // Optionally, update thumb position visually:
+    thumbMin.style.left = `${pos}px`;
+    // Refresh the prediction text:
+    updateGlucosePrediction();
+  }
+  
+  function onMouseUpMin(e) {
+    isDraggingMin = false;
+    document.removeEventListener('mousemove', onMouseMoveMin);
+    document.removeEventListener('mouseup', onMouseUpMin);
+  }
+  
+  // --- For the maximum slider thumb ---
+  const thumbMax = document.getElementById('thumb-max');
+  let isDraggingMax = false;
+  
+  thumbMax.addEventListener('mousedown', function(e) {
+    isDraggingMax = true;
+    document.addEventListener('mousemove', onMouseMoveMax);
+    document.addEventListener('mouseup', onMouseUpMax);
+  });
+  
+  function onMouseMoveMax(e) {
+    if (!isDraggingMax) return;
+    const sliderRect = slider.getBoundingClientRect();
+    let pos = e.clientX - sliderRect.left;
+    pos = Math.max(0, Math.min(pos, sliderRect.width));
+    const newMaxValue = minValue + (pos / sliderRect.width) * (maxValue - minValue);
+    document.getElementById('slider-glucose-max-value').textContent = newMaxValue.toFixed(2);
+    thumbMax.style.left = `${pos}px`;
+    updateGlucosePrediction();
+  }
+  
+  function onMouseUpMax(e) {
+    isDraggingMax = false;
+    document.removeEventListener('mousemove', onMouseMoveMax);
+    document.removeEventListener('mouseup', onMouseUpMax);
+  }
+}
+
+// Ensure that the slider is set up after the DOM content is loaded.
+document.addEventListener("DOMContentLoaded", function() {
+  setupGlucoseSlider();
+});
+
+
 

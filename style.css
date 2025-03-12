@@ -57,6 +57,10 @@ h1 {
 
 p {
   font-size: 15px; /* Adjust the size as needed */
+  white-space: normal;  /* Allow normal wrapping */
+  word-break: normal;   /* Do not break words arbitrarily */
+  overflow-wrap: normal;
+  padding: 0 50px 0 5px;
 }
 
 .tooltip {
@@ -159,8 +163,7 @@ dl.info[hidden]:not(:hover, :focus-within) {
   display: flex;
   align-items: flex-start; /* Align to the top */
   justify-content: flex-start; /* Align to the left */
-  padding: 50px; /* Adds space from the edges */
-  background-color: #f5f5f5; /* Adjust as needed */
+  padding: 0px; /* Adds space from the edges */
 }
 
 #page-final h1 {
@@ -190,15 +193,14 @@ dl.info[hidden]:not(:hover, :focus-within) {
   }
 
   #slider-container {
-    position: fixed;
+    position: absolute;
     top: 20px;
     right: 20px;
     background: #fff;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 10px;
     z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+    }
   
   /* Each slider item arranged vertically */
   .slider-item {
@@ -236,14 +238,14 @@ dl.info[hidden]:not(:hover, :focus-within) {
   /* Green track for Webkit */
   input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
-    background: green;
+    background: rgb(0, 0, 0);
     border-radius: 3px;
   }
   
   /* Green track for Firefox */
   input[type="range"]::-moz-range-track {
     height: 6px;
-    background: green;
+    background: rgb(0, 0, 0);
     border-radius: 3px;
   }
   
@@ -254,7 +256,7 @@ dl.info[hidden]:not(:hover, :focus-within) {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: green;
+    background: rgb(0, 0, 0);
     cursor: pointer;
     margin-top: -5px; /* to center the thumb on the track */
   }
@@ -262,7 +264,7 @@ dl.info[hidden]:not(:hover, :focus-within) {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: green;
+    background: rgb(0, 0, 0);
     cursor: pointer;
   }
 
@@ -302,7 +304,7 @@ dl.info[hidden]:not(:hover, :focus-within) {
 .range-track {
   position: absolute;
   height: 100%;
-  background: #0b79d0; /* or any color you prefer for the selected range */
+  background: #000000; /* or any color you prefer for the selected range */
   left: 0;
   width: 0;
 }
@@ -320,3 +322,144 @@ dl.info[hidden]:not(:hover, :focus-within) {
 #thumb-min, #thumb-max {
   transform: translateX(-50%);
 }
+
+/* Parent container styling for organizing charts */
+#macroPieChartContainer {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;         /* Allow charts to wrap on smaller screens */
+  justify-content: center; /* Center the charts */
+}
+
+/* Chart container with percentage-based sizing */
+#macroPieChartContainer .chart-container {
+  flex: 1 1 30%;           /* Grow and shrink with a base width of 33% */
+  text-align: center;
+  max-width: 30%;          /* Limit each chart to 33% of the container's width */
+  box-sizing: border-box;  /* Include padding and borders in the width calculation */
+  padding: 10px;           /* Optional: adjust spacing between charts */
+}
+
+/* Global Info Container */
+#global-info {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 9999;
+}
+
+/* Global Info Icon: white circle with black border */
+#global-info-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid black;
+  font-weight: bold;
+  font-size: 16px;
+  color: black;
+  cursor: pointer;
+}
+
+/* Global Info Tooltip */
+#global-info-tooltip {
+  display: none;             /* hidden by default */
+  position: fixed;
+  top: 60px;
+  left: 10px;
+  box-sizing: border-box;
+  width: fit-content;        /* Only as wide as needed */
+  max-width: 300px;          /* Cap at 300px */
+  background: rgba(255,255,255,0.9);
+  border: 1px solid black;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  z-index: 9999;
+  color: black;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+/* Optional: adjust p margins if needed */
+#global-info-tooltip p { 
+  margin: 0 0 2px 0; 
+}
+
+/* Show the tooltip when hovering over the whole global-info container */
+#global-info:hover #global-info-tooltip {
+  display: block;
+}
+
+
+/* Make the page a vertical flex container */
+#starter-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;  /* full viewport height */
+  text-align: center;
+  gap: 20px; /* space between title and container */
+}
+
+/* Style the title normally */
+#starter-page h1 {
+  margin: 0;
+  font-size: 2em;  /* adjust as needed */
+}
+
+/* Flex container for the dot and text */
+.starter-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px; /* space between the dot and text */
+  width: 100%;
+  padding: 20px;
+}
+
+/* Container for the SVG remains with fixed dimensions */
+#starter-svg-container {
+  width: 400px;
+  height: 500px;
+}
+
+/* Text container style */
+#starter-text {
+  flex: 1;
+  color: #333;
+}
+
+#starter-text p {
+  font-size: 25px;
+  color: #666;
+}
+
+.person, .healthy, .prediabetic, .type2 {
+  font-weight: 600;
+}
+
+/* Color classes */
+.healthy {
+  color: #2C7BB6;
+}
+
+.prediabetic {
+  color: #FDB863;
+}
+
+.type2 {
+  color: #D7191C;
+}
+
+.person {
+  color: #333;
+}
+
+

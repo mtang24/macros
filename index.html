@@ -3,12 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Glucose Monitoring and Macros</title>
+    <title>Metabolic Health Data</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
 </head>
 <body>
+    <div id="global-info">
+      <span id="global-info-icon">i</span>
+      <div id="global-info-tooltip">
+        <p>Scroll up or down to explore the visualizations and insights on metabolic health metrics.</p>
+        <p>The page indicator dots on the right help track your current page.</p>
+        <p>Click any dot to navigate to that page.</p>
+      </div>
+    </div>
+
     <div id="slider-container">
         <div class="slider-item">
           <span class="slider-label">Avg Daily Calories</span>
@@ -53,8 +62,27 @@
           </div>
       </div>
     <div id="snap-container">
+      <section id="starter-page">
+        <h1>🤔 Could Your Metabolic Health Be at Risk?</h1>
+        <div class="starter-container">
+          <!-- Container for the SVG with the dot -->
+          <div id="starter-svg-container"></div>
+          <!-- Container for the descriptive text -->
+          <div id="starter-text">
+            <p>
+              This dot represents a  
+              <span class="person">real person</span>—one participant in a study tracking 45 individuals over 10 days. Each subject belongs to one of three metabolic health groups: 
+              <span class="healthy">Healthy</span>, 
+              <span class="prediabetic">Pre-Diabetic</span>, or 
+              <span class="type2">Type 2 Diabetic</span>, with their daily activities, lab values, and metabolic data recorded.
+              How do their lifestyles compare to yours?
+            </p>
+          </div>
+        </div>
+      </section>      
         <section id="visualization">
-            <h1> 📉 Visualizing Glucose Levels and Macros Across Metabolic Health Groups</h1>
+          <h2> 📊 Subject Data: Tracking Metabolic Health
+          </h2>
             <div id="chart" class="chart-container">
                 <svg id="grid" width="1000" height="700"></svg>
             </div>
@@ -75,48 +103,67 @@
           <h2>Do Diabetics Consume More Calories?</h2>
           <h4></h4>
           <div id="sample-text-box">
-            The graph below shows the <strong>total calories consumed for each group or subject over the 10-day period</strong>, depending on the selected view. Try moving the slider to match your calorie consumption over the same 10-day period and see where your value falls on both views!
+            The graph below shows the <strong>average calories consumed for each group or subject over the 10-day period</strong>, depending on the selected view. Try moving the slider to match your calorie consumption over the same 10-day period and see where your value falls on both views!
           </div>
           <div id="view-toggle">
-            <input type="radio" id="grouped-view" name="view" value="grouped">
-            <label for="grouped-view">Grouped View</label>
             <input type="radio" id="swarm-view" name="view" value="swarm" checked>
             <label for="swarm-view">Individual View</label>
+            <input type="radio" id="grouped-view" name="view" value="grouped">
+            <label for="grouped-view">Grouped View</label>
           </div>
           <div id="axes-container"></div>
         </section>
         
-          
-        
         <section id="page-3">
             <h2>Distribution of Macros 🥩</h2>
-        </section>
-
-        <section id="page-4">
-            <h2>BMI</h2>
-        </section>
-
-        <section id="page-5">
-            <h2>How do glucose levels vary across groups?</h2>
-            <p> This plot shows the range of blood glucose levels measured by the Libre Pro sensor for each subject over a 10-day period. The minimum possible value is 40 mg/dL and the maximum possible value is 400 mg/dL. The x-axis represents the glucose measurement in mg/dL, while the y-axis displays the subject ID ordered by group. The color of the line represents the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a line will display the subject's ID and the range of glucose levels for that subject. 
-            </p>
-            <div class="chart-container" id="glrange-container"></div>
+            <p>Not enough fiber by diabetics</p>
         </section>
 
         <section id="page-6">
-            <h2>Heart Rate</h2>
+            <h2>How does heart rate</h2>
             <p>
                 The visualization below illustrations average heart rate over the last minute provided by the FitBit Sense Smartwatch in beats per minute.
                 
             </p>
             <div class="chart-container" id="hr-container"></div>
         </section>
-        <section id="page-final">
-          <div class="content">
-            <h1>Putting it all together: Making Predictions and Moving Forward</h1>
-            <p>Hello! This is some sample text! Therefore...</p>
-          </div>
+
+        <section id="page-5">
+          <h2>However, glucose levels are the primary determinant of diabetic groups...</h2>
+          <p> This plot shows the range of blood glucose levels measured by the Libre Pro sensor for each subject over a 10-day period. The minimum possible value is 40 mg/dL and the maximum possible value is 400 mg/dL. The x-axis represents the glucose measurement in mg/dL, while the y-axis displays the subject ID ordered by group. The color of the line represents the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a line will display the subject's ID and the range of glucose levels for that subject. 
+          </p>
+          <div class="chart-container" id="glrange-container"></div>
         </section>
+
+        <section id="page-final">
+          <h1>Putting it all together: Making Predictions and Moving Forward</h1>
+          <p>Hopefully, you have had time to engage with all of the health metric visualizations! Each interactive graph allowed you to search for trends and patterns across metabolic health groups for these different metrics	.
+            However, you may have noticed that the measurements for these metrics aren’t always as determinant of a subject’s metabolic health group as you may initially think. For example, it is surprisingly the case that diabetics consume the least calories per day on average, while the subject that consumed the most calories falls into the “healthy” group.
+            As such, your predicted metabolic health group should not be treated as an absolute assessment, but rather a possible indicator or warning based on some common but important metrics.
+            </p>
+          <p>If you are to take something from this metabolic insights journey, let it be that <strong>to improve or maintain your health, it takes a combination of making smart decisions for all of these metrics and more</strong>, which will benefit any reader, regardless of their metabolic health status</p>
+          <h3>Predictions:</h3>
+          <ul>
+            <li id="prediction-calories">
+              Your Average Daily Calorie Intake: <strong>0.00</strong> Calories
+            </li>
+            <li id="prediction-hr">
+              Your Average Heart Rate: <strong>40.00</strong> BPM
+            </li>
+            <li id="prediction-glucose">
+              Your Glucose Range: <strong>100.00</strong> - <strong>200.00</strong> mg/dL
+            </li>
+            <li id="prediction-group">
+              Your <strong>Predicted</strong> Metabolic Health Group: <strong>Pre-Diabetes</strong> 
+              <span class="color-box" style="display:inline-block;width:15px;height:15px;background:#FDB863;margin-left:5px;"></span>
+            </li>
+          </ul>
+          <p id="prediction-summary"></p>
+        </section>
+
+        <!-- <section id="page-4">
+          <h2>BMI</h2>
+        </section> -->
         
     </div>
 
