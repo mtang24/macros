@@ -60,7 +60,8 @@ p {
   white-space: normal;  /* Allow normal wrapping */
   word-break: normal;   /* Do not break words arbitrarily */
   overflow-wrap: normal;
-  padding: 0 50px 0 5px;
+  padding: 0 10px 0 5px;
+  margin-bottom: 0;
 }
 
 .tooltip {
@@ -177,6 +178,9 @@ dl.info[hidden]:not(:hover, :focus-within) {
   font-weight: normal;
 }
 
+h2 {
+  margin-bottom: 10px; /* Adjust this value as needed */
+}
 
 
 
@@ -187,11 +191,16 @@ dl.info[hidden]:not(:hover, :focus-within) {
     overflow: hidden;
     width: 100%;
     height: 80vh; /* Use a responsive height */
-    padding: 20px;
+    padding: 10px;
     box-sizing: border-box;
     /* border: 1px solid red;  (keep temporarily for debugging) */
   }
-
+  #page-5 p {
+    font-size: 14.5px; /* Smaller font size */
+    margin: 0; /* Remove default margins */
+    padding: 0 0 10px 0; /* Add padding only to the bottom (10px) */
+    line-height: 1.4; /* Adjust line height for better readability */
+  }
   #slider-container {
     position: absolute;
     top: 20px;
@@ -329,6 +338,8 @@ dl.info[hidden]:not(:hover, :focus-within) {
   width: 100%;
   flex-wrap: wrap;         /* Allow charts to wrap on smaller screens */
   justify-content: center; /* Center the charts */
+  margin-bottom: 0;
+  height:auto;
 }
 
 /* Chart container with percentage-based sizing */
@@ -337,9 +348,18 @@ dl.info[hidden]:not(:hover, :focus-within) {
   text-align: center;
   max-width: 30%;          /* Limit each chart to 33% of the container's width */
   box-sizing: border-box;  /* Include padding and borders in the width calculation */
-  padding: 10px;           /* Optional: adjust spacing between charts */
+  padding: 0;           /* Optional: adjust spacing between charts */
 }
-
+#macroPieChartContainer .chart-container svg {
+  width: 100%;             /* Make SVG fill the container */
+  height: auto;            /* Allow height to adjust proportionally */
+  margin: 0;               /* Remove default margin */
+  padding: 0;              /* Remove default padding */
+}
+#page-3 p {
+  margin: 0 ;
+  padding: 0 ;
+}
 /* Global Info Container */
 #global-info {
   position: fixed;
@@ -414,6 +434,15 @@ dl.info[hidden]:not(:hover, :focus-within) {
   font-size: 2em;  /* adjust as needed */
 }
 
+/* Style the title normally */
+#starter-page h2 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 25px;
+  color: #666;
+}
+
+
 /* Flex container for the dot and text */
 .starter-container {
   display: flex;
@@ -462,4 +491,7 @@ dl.info[hidden]:not(:hover, :focus-within) {
   color: #333;
 }
 
+h2 {
+  margin-bottom: 0px;
+}
 

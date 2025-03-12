@@ -30,6 +30,7 @@ async function loadData() {
   // Load each subject’s CSV to compute total Calories, avg METs, avg HR, minGL and maxGL
   const subjectNumbers = Array.from({ length: 49 }, (_, i) => i + 1);
   const subjectsResults = await loadAllSubjects(subjectNumbers);
+  window.subjectMetricsResults = subjectsResults;
 
   // Build a mapping from subject number to metrics (including minGL and maxGL)
   const subjectMetricsMap = {};
@@ -50,14 +51,14 @@ async function loadData() {
     const subj = +d.subject; // ensure subject is numeric
     if (subjectMetricsMap[subj] !== undefined) {
       d.totalCalories = subjectMetricsMap[subj].totalCalories;
-      d.avgMETs = subjectMetricsMap[subj].avgMETs;
+      // d.avgMETs = subjectMetricsMap[subj].avgMETs;
       d.avgHR = subjectMetricsMap[subj].avgHR;
       d.minGL = subjectMetricsMap[subj].minGL;
       d.maxGL = subjectMetricsMap[subj].maxGL;
       d.size = sizeScale(d.totalCalories);
     } else {
       d.totalCalories = 0;
-      d.avgMETs = undefined;
+      // d.avgMETs = undefined;
       d.avgHR = undefined;
       d.minGL = undefined;
       d.maxGL = undefined;
@@ -66,25 +67,25 @@ async function loadData() {
   });
 
   plotData();
-  plotBMIDots();
+  // plotBMIDots();
 }
 
 const sliderValues = {
-  totalCalories: 0.00,
-  avgMETs: 0.00,
+  totalCalories: 20000.00,
+  // avgMETs: 0.00,
   avgHR: 40.00,
   avgGlucose: 0.00,
-  bmi: 0.00
+  // bmi: 0.00
 };
 
 
 // Add event listeners to update both the display and our global values
 
 
-document.getElementById('slider-mets').addEventListener('input', function() {
-  sliderValues.avgMETs = parseFloat(this.value);
-  this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgMETs.toFixed(2);
-});
+// document.getElementById('slider-mets').addEventListener('input', function() {
+//   sliderValues.avgMETs = parseFloat(this.value);
+//   this.parentElement.querySelector('.slider-value').textContent = sliderValues.avgMETs.toFixed(2);
+// });
 
 document.getElementById('slider-hr').addEventListener('input', function() {
   sliderValues.avgHR = parseFloat(this.value);
@@ -164,27 +165,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // After loadData, if on Page 5, plot the GL range.
   if (document.getElementById("page-5")) {
-    // Store the subjectsResults globally so we can use them in plotGLRange.
-    window.subjectMetricsResults = await loadAllSubjects(Array.from({ length: 49 }, (_, i) => i + 1));
     plotGLRange();
   }
 
   if (document.getElementById("page-6")) {
-    // Store the subjectsResults globally so we can use them in plotGLRange.
-    window.subjectMetricsResults = await loadAllSubjects(Array.from({ length: 49 }, (_, i) => i + 1));
     plotAvgHRBoxPlot();
   }
-  const subjectNumbers = Array.from({ length: 49 }, (_, i) => i + 1);
-  const subjectsResults = await loadAllSubjects(subjectNumbers);
  
   if (document.getElementById("page-3")) {
-    const macroAverages = computeMacroAverages(subjectsResults);
+    const macroAverages = computeMacroAverages(window.subjectMetricsResults);
   
     // Append Pie Chart to Page 3
     const page3 = document.getElementById("page-3");
     page3.innerHTML = `
-    <h2 class="page-title">Macronutrient Consumption Across Diabetes Groups</h2>
+    <h2 class="page-title">Macronutrient Consumption Varies Most in Diabetics</h2>
     <div id="macroPieChartContainer"></div>
+    <p>People in the Type 2 Diabetes group consumed significantly less fiber than
+    the other groups while having higher intakes of carbohydrates and protein. The lower fiber intake 
+    and altered macronutrient distribution may stem from dietary limitations imposed to manage blood
+    sugar levels in diabetic individuals.
+    </p>
   `
     renderMacroPieChart(macroAverages);
   }
@@ -298,7 +298,7 @@ function updatePredictedGroup() {
   } else if (majority === 1) {
     groupName = "Pre-Diabetes";
     groupColor = "#FDB863"; // gold/yellow
-    extraMessage = "Your glucose levels are likely still higher than normal, but not high enough to be classified as diabetes. Healthy choices can help prevent diabetic development!";
+    extraMessage = "Your glucose levels are likely still higher than normal, but not high enough to be classified as diabetic. Healthy choices can help prevent diabetic development!";
   } else if (majority === 2) {
     groupName = "Type 2 Diabetes";
     groupColor = "#D7191C"; // red
@@ -357,10 +357,10 @@ document.getElementById('slider-hr').addEventListener('input', function() {
 function drawPage2Axes() {
   d3.select("#axes-container").select("svg").remove();
 
-  const margin = { top: 60, right: 200, bottom: 60, left: 100 };
+  const margin = { top: 60, right: 200, bottom: 50, left: 100 };
   const width = 850 - margin.left - margin.right;
   window.page2ChartWidth = width; // Save for later use in positioning the label
-  const height = 500 - margin.top - margin.bottom;
+  const height = 450 - margin.top - margin.bottom;
   const svg = d3.select("#axes-container")
 .append("svg")
 .attr("width", width + margin.left + margin.right)
@@ -431,7 +431,7 @@ svg.append("text")
     .attr("font-size", "14px")
     .attr("font-weight", "bold")
     .style("white-space", "nowrap") // ✅ Ensures text doesn't get cut off
-    .text(`Your Avg Daily Calories: ${sliderValues.totalCalories}`);
+    .text(`Your Avg Daily Calories: ${sliderValues.totalCalories/10}`);
 
 
 
@@ -668,7 +668,7 @@ function plotStarterDot() {
     subject: 26,
     Diabetes: "Pre-Diabetes",
     totalCalories: 18649,   // Example calorie value.
-    avgMETs:"N/A",          // Example METs.
+    // avgMETs:"N/A",          // Example METs.
     avgHR: 81.99,             // Example heart rate.
     minGL: 90,             // Example minimum glucose.
     maxGL: 233,            // Example maximum glucose.
@@ -792,7 +792,7 @@ plotStarterDot();
     .style("display", "none");
     
     // Hide the info section so it doesn’t affect scrolling.
-    d3.select("#info-section").style("display", "none");
+    d3.select("#final-page").style("display", "none");
     
     // Get the dot's base color and compute a lighter version.
     const dotColor = color(d.Diabetes);
@@ -1007,39 +1007,60 @@ function plotData() {
   preSim.alpha(1).restart();
   type2Sim.alpha(1).restart();
 
-  // Append a scroll down arrow that smooth-scrolls to the info section.
-  if (d3.select("#scroll-down-arrow").empty()) {
-    d3.select("#snap-container")
-      .append("div")
-      .attr("id", "scroll-down-arrow")
-      .style("position", "fixed")
-      .style("bottom", "20px")
-      .style("left", "50%")
-      .style("transform", "translateX(-50%)")
-      .style("cursor", "pointer")
-      .html(`<div style="font-size: 14px;">&#8595; Read more</div>`)
-      .on("click", function() {
-        document.getElementById("info-section").scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-  }
+// Append a scroll down arrow that smooth-scrolls to the info section.
+if (d3.select("#scroll-down-arrow").empty()) {
+  d3.select("#snap-container")
+    .append("div")
+    .attr("id", "scroll-down-arrow")
+    .style("position", "fixed")
+    .style("bottom", "20px")
+    .style("left", "50%")
+    .style("transform", "translateX(-50%)")
+    .style("cursor", "pointer")
+    .html(`<div style="font-size: 14px;">&#8595; Read more</div>`)
+}
 
-  // Get references to the info section and scroll arrow.
-  const infoSection = document.getElementById("info-section");
-  const scrollArrow = document.getElementById("scroll-down-arrow");
+// Get references to the final page and scroll arrow.
+const pages = Array.from(document.querySelectorAll('#snap-container section'));
+const finalPage = document.getElementById("page-final");
+const scrollArrow = document.getElementById("scroll-down-arrow");
 
-  // Create an observer to monitor when the info section enters the viewport within #snap-container.
-  const snapContainer = document.getElementById("snap-container");
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      scrollArrow.style.display = entry.isIntersecting ? "none" : "block";
-    });
-  }, { 
-    root: snapContainer,  // Use snap-container as the scrolling area
-    threshold: 0.1 
+// Create an observer to monitor when the final page enters the viewport within #snap-container.
+const snapContainer = document.getElementById("snap-container");
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    scrollArrow.style.display = entry.isIntersecting ? "none" : "block";
   });
+}, { 
+  root: snapContainer,  // Use snap-container as the scrolling area
+  threshold: 0.1 
+});
 
-  // Observe the info section.
-  observer.observe(infoSection);
+// Observe the final page.
+observer.observe(finalPage);
+
+// Helper: find the current page index based on scroll position
+function getCurrentPageIndex() {
+  // Use snapContainer's scroll position to find the section closest to the top
+  let containerScrollTop = snapContainer.scrollTop;
+  let currentIndex = 0;
+  pages.forEach((page, index) => {
+    // Using offsetTop relative to snapContainer.
+    // Adjust the threshold (here 50) if necessary.
+    if (page.offsetTop <= containerScrollTop + 50) {
+      currentIndex = index;
+    }
+  });
+  return currentIndex;
+}
+
+// On arrow click, scroll to the next page (if available)
+scrollArrow.addEventListener("click", function() {
+  let currentIndex = getCurrentPageIndex();
+  // If there's a next page, scroll to it; otherwise, do nothing (or loop back)
+  let nextIndex = Math.min(currentIndex + 1, pages.length - 1);
+  pages[nextIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
   // Re-create tooltip if it doesn't exist.
   if (d3.select("#tooltip").empty()) {
@@ -1193,7 +1214,7 @@ async function loadSubjectData(subjectNumber) {
     // Convert Calories, METs, HR, and Libre Gl to numbers.
     csvData.forEach(d => {
       d.Calories = +d.Calories;
-      d.METs = +d.METs;
+      // d.METs = +d.METs;
       d.HR = +d.HR;
       d["Libre GL"] = +d["Libre GL"];
     });
@@ -1201,8 +1222,8 @@ async function loadSubjectData(subjectNumber) {
     const totalCalories = d3.sum(csvData, d => d.Calories);
     const avgDailyCalories = totalCalories / 10;
     // Filter valid METs and HR values before computing averages.
-    const validMETs = csvData.filter(d => !isNaN(d.METs));
-    const avgMETs = d3.mean(validMETs, d => d.METs);
+    // const validMETs = csvData.filter(d => !isNaN(d.METs));
+    // const avgMETs = d3.mean(validMETs, d => d.METs);
     const validHR = csvData.filter(d => !isNaN(d.HR));
     const avgHR = d3.mean(validHR, d => d.HR);
     // Compute min Libre Gl in a similar way to avgHR.
@@ -1229,7 +1250,7 @@ async function loadSubjectData(subjectNumber) {
       subject: subjectNumber, 
       totalCalories, 
       avgDailyCalories,
-      avgMETs, 
+      // avgMETs, 
       avgHR, 
       minGL, 
       maxGL, 
@@ -1246,15 +1267,6 @@ async function loadSubjectData(subjectNumber) {
   }
 }
 
-async function loadAllCSVSubjects(subjectNumbers) {
-  const missingSubjectIDs = [24, 25, 37, 40];
-  const validSubjects = subjectNumbers.filter(subject => !missingSubjectIDs.includes(subject));
-  const subjectPromises = validSubjects.map(subject => loadcsvData(subject));
-  const results = await Promise.all(subjectPromises);
-  const filteredResults = results.filter(result => result !== null);
-  console.log("Metrics per subject:", filteredResults);
-  return filteredResults;
-}
 // Load multiple subjects (e.g., subjects 1 to 49)
 async function loadAllSubjects(subjectNumbers) {
   const missingSubjectIDs = [24, 25, 37, 40]; // Skip these subjects
@@ -1324,7 +1336,7 @@ function resetMainView() {
       .style("opacity", 1);
   
   // Re-display the info section (the second page).
-  d3.select("#info-section").style("display", "block");
+  d3.select("#page-final").style("display", "block");
   
   // Remove and re-add the scroll arrow.
   d3.selectAll("#scroll-down-arrow").remove();
@@ -1337,15 +1349,9 @@ function resetMainView() {
     .style("transform", "translateX(-50%)")
     .style("cursor", "pointer")
     .html(`<div style="font-size: 14px;">&#8595; Read more</div>`)
-    .on("click", function() {
-      document.getElementById("info-section").scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    });
   
   // Re-attach the IntersectionObserver to the new arrow so it hides on page2.
-  const infoSection = document.getElementById("info-section");
+  const lastPage = document.getElementById("page-final");
   const scrollArrow = document.getElementById("scroll-down-arrow");
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -1355,7 +1361,7 @@ function resetMainView() {
     root: snapContainer,
     threshold: 0.1
   });
-  observer.observe(infoSection);
+  observer.observe(lastPage);
   
   // Re-enable snap scrolling after a delay.
   setTimeout(() => {
@@ -1411,87 +1417,83 @@ window.addEventListener("wheel", function handleScroll(e) {
   }
 });
 
-
-
-function plotBMIDots() {
-  // Ensure BMI values are numeric.
-  data.forEach(d => { d.BMI = +d.BMI; });
+// function plotBMIDots() {
+//   // Ensure BMI values are numeric.
+//   data.forEach(d => { d.BMI = +d.BMI; });
   
-  const width = 800, height = 400;
-  const margin = { top: 40, right: 40, bottom: 40, left: 40 };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+//   const width = 800, height = 400;
+//   const margin = { top: 40, right: 40, bottom: 40, left: 40 };
+//   const innerWidth = width - margin.left - margin.right;
+//   const innerHeight = height - margin.top - margin.bottom;
   
-  // Determine the min/max BMI.
-  const minBMI = d3.min(data, d => d.BMI);
-  const maxBMI = d3.max(data, d => d.BMI);
+//   // Determine the min/max BMI.
+//   const minBMI = d3.min(data, d => d.BMI);
+//   const maxBMI = d3.max(data, d => d.BMI);
   
-  // Use BMI to determine vertical positions.
-  const yScale = d3.scaleLinear()
-                   .domain([minBMI, maxBMI])
-                   .range([innerHeight, 0])
-                   .nice();
+//   // Use BMI to determine vertical positions.
+//   const yScale = d3.scaleLinear()
+//                    .domain([minBMI, maxBMI])
+//                    .range([innerHeight, 0])
+//                    .nice();
   
-  // Create an x-scale for horizontal jitter.
-  const xScale = d3.scaleLinear()
-                   .domain([0, 1])
-                   .range([0, innerWidth]);
+//   // Create an x-scale for horizontal jitter.
+//   const xScale = d3.scaleLinear()
+//                    .domain([0, 1])
+//                    .range([0, innerWidth]);
   
-  // Define a color scale based on diabetes status.
-  const colorScale = d3.scaleOrdinal()
-                       .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
-                       .range(["#2C7BB6", "#FDB863", "#D7191C"]);
+//   // Define a color scale based on diabetes status.
+//   const colorScale = d3.scaleOrdinal()
+//                        .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
+//                        .range(["#2C7BB6", "#FDB863", "#D7191C"]);
   
-  // Append the SVG to page-4.
-  const svg = d3.select("#page-4")
-                .append("svg")
-                .attr("id", "bmi-chart")
-                .attr("width", width)
-                .attr("height", height);
+//   // Append the SVG to page-4.
+//   const svg = d3.select("#page-4")
+//                 .append("svg")
+//                 .attr("id", "bmi-chart")
+//                 .attr("width", width)
+//                 .attr("height", height);
                         
-  const g = svg.append("g")
-               .attr("transform", `translate(${margin.left},${margin.top})`);
+//   const g = svg.append("g")
+//                .attr("transform", `translate(${margin.left},${margin.top})`);
   
-  // Plot circles for each subject with horizontal jitter.
-  g.selectAll("circle")
-    .data(data)
-    .enter()
-    .append("circle")
-    // Use random jitter for x and map BMI for the y position.
-    .attr("cx", d => xScale(Math.random()))
-    .attr("cy", d => yScale(d.BMI))
-    .attr("r", 5)
-    .attr("fill", d => colorScale(d.Diabetes))
-    .on("mouseover", function(event, d) {
-      d3.select("#tooltip")
-        .style("display", "block")
-        .html(
-          `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-           <div>Diabetes: ${d.Diabetes}</div>
-           <div>BMI: ${d.BMI}</div>`
-        )
-        .style("left", (event.pageX + 5) + "px")
-        .style("top", (event.pageY - 28) + "px")
-        .transition().duration(200)
-        .style("opacity", 0.9);
-    })
-    .on("mouseout", function() {
-      d3.select("#tooltip")
-        .transition()
-        .duration(500)
-        .style("opacity", 0)
-        .on("end", function() {
-           d3.select(this).style("display", "none");
-        });
-    });
+//   // Plot circles for each subject with horizontal jitter.
+//   g.selectAll("circle")
+//     .data(data)
+//     .enter()
+//     .append("circle")
+//     // Use random jitter for x and map BMI for the y position.
+//     .attr("cx", d => xScale(Math.random()))
+//     .attr("cy", d => yScale(d.BMI))
+//     .attr("r", 5)
+//     .attr("fill", d => colorScale(d.Diabetes))
+//     .on("mouseover", function(event, d) {
+//       d3.select("#tooltip")
+//         .style("display", "block")
+//         .html(
+//           `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+//            <div>Diabetes: ${d.Diabetes}</div>
+//            <div>BMI: ${d.BMI}</div>`
+//         )
+//         .style("left", (event.pageX + 5) + "px")
+//         .style("top", (event.pageY - 28) + "px")
+//         .transition().duration(200)
+//         .style("opacity", 0.9);
+//     })
+//     .on("mouseout", function() {
+//       d3.select("#tooltip")
+//         .transition()
+//         .duration(500)
+//         .style("opacity", 0)
+//         .on("end", function() {
+//            d3.select(this).style("display", "none");
+//         });
+//     });
   
-  // Optional: add a y-axis for BMI.
-  const yAxis = d3.axisLeft(yScale);
-  g.append("g")
-   .call(yAxis);
-}
-
-
+//   // Optional: add a y-axis for BMI.
+//   const yAxis = d3.axisLeft(yScale);
+//   g.append("g")
+//    .call(yAxis);
+// }
 
 function plotGLRange() {
   if (!window.subjectMetricsResults) {
@@ -1547,6 +1549,23 @@ function plotGLRange() {
   svg.append("g")
     .call(d3.axisLeft(yScale)
       .tickFormat(d => d.toString().startsWith("gap-") ? "" : d));
+  
+  svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("x", width / 2)
+    .attr("y", height + margin.bottom - 10) // Position below the X-axis
+    .style("font-size", "14px")
+    .style("font-weight", "bold")
+    .text("Glucose Level (mg/dL)");
+
+  // Add Y-axis label (Subject Number)
+  svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("transform", `translate(-${margin.left / 1.5}, ${height / 2}) rotate(-90)`)
+    .style("font-size", "14px")
+    .style("font-weight", "bold")
+    .text("Subject Number");
+
 
   // (Optional) Compute the predicted group and update the title.
   const groupAverageGL = groups.map(group => {
@@ -1757,7 +1776,6 @@ function plotGLRange() {
   overlayLabel.exit().remove();
 }
 
-
 function updateUserGlucoseRange() {
   // If subject metrics are not loaded, wait and try again.
   if (!window.subjectMetricsResults) {
@@ -1965,186 +1983,6 @@ window.updateUserGlucoseRange = updateUserGlucoseRange;
 
 
 
-// function updateUserGlucoseRange() {
-//   // Ensure global SVG exists.
-//   if (!window.svg) {
-//     console.warn("SVG not defined. Calling plotGLRange() to create it.");
-//     plotGLRange();
-//     if (!window.svg) return;
-//   }
-  
-//   // Get slider values (use defaults if not defined)
-//   const userMinGL = window.userGlucoseMin ? window.userGlucoseMin() : 40;
-//   const userMaxGL = window.userGlucoseMax ? window.userGlucoseMax() : 410;
-  
-//   // Define diabetes groups.
-//   const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  
-//   // Sort subjects using our global subjectMetricsResults.
-//   const sortedSubjects = window.subjectMetricsResults.slice().sort((a, b) => {
-//     if (a.Diabetes !== b.Diabetes) {
-//       return groups.indexOf(a.Diabetes) - groups.indexOf(b.Diabetes);
-//     }
-//     return +a.subject - +b.subject;
-//   });
-//   window.sortedSubjects = sortedSubjects;
-  
-//   // Compute average GL per group.
-//   const groupAverageGL = groups.map(group => {
-//     const groupData = sortedSubjects.filter(d => d.Diabetes === group);
-//     return {
-//       group,
-//       avgMin: d3.mean(groupData, d => +d.minGL),
-//       avgMax: d3.mean(groupData, d => +d.maxGL)
-//     };
-//   });
-  
-//   // Determine the predicted group based on closest averages.
-//   let bestGroup = groupAverageGL[0];
-//   let bestDiff = Infinity;
-//   groupAverageGL.forEach(g => {
-//     const diff = Math.abs(g.avgMin - userMinGL) + Math.abs(g.avgMax - userMaxGL);
-//     if (diff < bestDiff) {
-//       bestDiff = diff;
-//       bestGroup = g;
-//     }
-//   });
-  
-//   // Update predicted group title.
-//   let container = d3.select("#glrange-container");
-//   let titleEl = container.select("#predicted-group-title");
-//   if (titleEl.empty()) {
-//     titleEl = container.insert("div", ":first-child")
-//       .attr("id", "predicted-group-title")
-//       .style("text-align", "center")
-//       .style("font-size", "16px")
-//       .style("font-weight", "bold")
-//       .style("margin", "10px 0");
-//   }
-//   titleEl.text(`Your predicted group: ${bestGroup.group}`);
-  
-//   // -------- Background Rectangle Update --------
-//   // Reuse the background group if it exists or insert a new one.
-//   let backgroundGroup = d3.select("g.background");
-//   if (backgroundGroup.empty()) {
-//     backgroundGroup = window.svg.insert("g", ":first-child")
-//       .attr("class", "background")
-//       .style("pointer-events", "none");
-//   } else {
-//     // Remove any existing rect inside backgroundGroup so we can re-draw.
-//     backgroundGroup.selectAll("rect").remove();
-//   }
-  
-//   // Define a color scale and a helper to lighten colors.
-//   const color = d3.scaleOrdinal()
-//       .domain(groups)
-//       .range(["#2C7BB6", "#FDB863", "#D7191C"]);
-//   function lightenColor2(col, factor = 0.7) {
-//     let c = d3.rgb(col);
-//     c.r = Math.round(c.r + (255 - c.r) * factor);
-//     c.g = Math.round(c.g + (255 - c.g) * factor);
-//     c.b = Math.round(c.b + (255 - c.b) * factor);
-//     return c.toString();
-//   }
-  
-//   // Get the subjects for the predicted group.
-//   const bestGroupData = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-//   if (bestGroupData.length > 0) {
-//     const yVals = bestGroupData.map(d => window.yScale(d.subject));
-//     const yMinRect = d3.min(yVals);
-//     const yMaxRect = d3.max(yVals) + window.yScale.bandwidth();
-    
-//     // Compute overlay center based on group data.
-//     const groupDataForOverlay = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-//     const baseOverlayY = groupDataForOverlay.length > 0
-//       ? d3.mean(groupDataForOverlay, d => window.yScale(d.subject) + window.yScale.bandwidth()/2)
-//       : d3.max(sortedSubjects, d => window.yScale(d.subject)) + window.yScale.bandwidth() + 30;
-      
-//     // Use fixed offsets: 110 for Healthy, 95 for Type 2 Diabetes, 105 for Pre-Diabetes.
-//     const offset = bestGroup.group === "Healthy" ? 110
-//                  : bestGroup.group === "Type 2 Diabetes" ? 95
-//                  : 105;
-//     const overlayY = baseOverlayY - offset;
-    
-//     // Extend upward if overlayY minus some extension is above yMinRect.
-//     const extension = 10; // adjust padding as needed
-//     const adjustedYMinRect = Math.min(yMinRect, overlayY - extension);
-    
-//     // Draw the background rectangle.
-//     backgroundGroup.append("rect")
-//       .attr("x", 0)
-//       .attr("y", adjustedYMinRect)
-//       .attr("width", window.xScale.range()[1])
-//       .attr("height", yMaxRect - adjustedYMinRect)
-//       .attr("fill", lightenColor2(color(bestGroup.group), 0.3))
-//       .attr("opacity", 0.5);
-//   }
-  
-//   // Make sure the background stays behind everything.
-//   backgroundGroup.lower();
-  
-//   // -------- Overlay Elements Update --------
-//   const fg = window.foregroundGroup;
-//   const t = d3.transition().duration(500).ease(d3.easeCubic);
-  
-//   // Recompute overlayY (if needed, identical to above).
-//   const groupDataForOverlay = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-//   const baseOverlayY = groupDataForOverlay.length > 0
-//     ? d3.mean(groupDataForOverlay, d => window.yScale(d.subject) + window.yScale.bandwidth()/2)
-//     : d3.max(sortedSubjects, d => window.yScale(d.subject)) + window.yScale.bandwidth() + 30;
-//   const offsetOverlay = bestGroup.group === "Healthy" ? 110 
-//                        : bestGroup.group === "Type 2 Diabetes" ? 95 
-//                        : 105;
-//   const overlayY = baseOverlayY - offsetOverlay;
-//   const overlayData = [{ min: userMinGL, max: userMaxGL, y: overlayY }];
-  
-//   // Update (or add) the overlay line.
-//   const line = fg.selectAll("line.user-glucose-line").data(overlayData);
-//   line.enter()
-//     .append("line")
-//     .attr("class", "user-glucose-line")
-//     .merge(line)
-//     .transition(t)
-//     .attr("x1", d => window.xScale(d.min))
-//     .attr("x2", d => window.xScale(d.max))
-//     .attr("y1", d => d.y)
-//     .attr("y2", d => d.y)
-//     .attr("stroke", "black")
-//     .attr("stroke-width", 2);
-//   line.exit().remove();
-  
-//   // Update overlay dots.
-//   const dotsData = [
-//     { cx: userMinGL, y: overlayY },
-//     { cx: userMaxGL, y: overlayY }
-//   ];
-//   const dots = fg.selectAll("circle.user-glucose-dot").data(dotsData);
-//   dots.enter()
-//     .append("circle")
-//     .attr("class", "user-glucose-dot")
-//     .merge(dots)
-//     .transition(t)
-//     .attr("cx", d => window.xScale(d.cx))
-//     .attr("cy", d => d.y)
-//     .attr("r", 5)
-//     .attr("fill", "black");
-//   dots.exit().remove();
-  
-//   // Update overlay label.
-//   const label = fg.selectAll("text.user-input-label").data(overlayData);
-//   label.enter()
-//     .append("text")
-//     .attr("class", "user-input-label")
-//     .merge(label)
-//     .transition().duration(300)
-//     .attr("x", -10)
-//     .attr("y", d => d.y + 5)
-//     .attr("text-anchor", "end")
-//     .style("font-size", "12px")
-//     .text("Your input");
-//   label.exit().remove();
-// }
-
 function computeMacroAverages(data) {
   const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
   const macros = ["avgCarbs", "avgProtein", "avgFat", "avgFiber"];
@@ -2199,6 +2037,7 @@ function renderMacroPieChart(macroAverages) {
     .style("width", `${containerWidth}px`)
     .style("margin", "0 auto")
     .style("display", "flex")
+    .style("height", "400px")
     .style("justify-content", "space-between"); // Arrange pie charts horizontally
 
   // For each group in macroAverages, create its own chart container and render a pie chart.
@@ -2216,6 +2055,7 @@ function renderMacroPieChart(macroAverages) {
       .style("font-size", "18px")
       .style("color", "#333")
       .style("font-weight", "600")
+
       .text(`${groupData.group}`);
 
     // Create the SVG container for this chart.
@@ -2439,7 +2279,7 @@ function plotAvgHRBoxPlot() {
   const data = window.subjectMetricsResults;
 
   // Set dimensions and margins for the chart.
-  const margin = { top: 5, right: 30, bottom: 70, left: 100 },
+  const margin = { top: 0, right: 30, bottom: 70, left: 100 },
         width = 560 - margin.left - margin.right,
         height = 480 - margin.top - margin.bottom;
 
@@ -2507,8 +2347,8 @@ function plotAvgHRBoxPlot() {
 
   // Add X axis label.
   svg.append("text")
-    .attr("text-anchor", "end")
-    .attr("x", width)
+    .attr("text-anchor", "middle")
+    .attr("x", width / 2)
     .attr("y", height + margin.top + 30)
     .text("Average HR");
 
@@ -2670,7 +2510,6 @@ function updateGlucosePrediction() {
   }
 }
 
-// This function sets up event listeners for the custom glucose slider thumbs.
 function setupGlucoseSlider() {
   const slider = document.querySelector('.range-slider');
   const minValue = 40;    // Define your minimum glucose value.
@@ -2689,16 +2528,17 @@ function setupGlucoseSlider() {
   function onMouseMoveMin(e) {
     if (!isDraggingMin) return;
     const sliderRect = slider.getBoundingClientRect();
-    // Calculate the horizontal position within the slider:
     let pos = e.clientX - sliderRect.left;
-    // Constrain the position:
-    pos = Math.max(0, Math.min(pos, sliderRect.width));
-    // Map the position to the glucose range:
+    
+    // Use getComputedStyle to reliably get thumbMax's position.
+    const thumbMaxPos = parseFloat(window.getComputedStyle(thumbMax).left) || sliderRect.width;
+    pos = Math.min(pos, thumbMaxPos);
+    pos = Math.max(pos, 0);
+    
     const newMinValue = minValue + (pos / sliderRect.width) * (maxValue - minValue);
     document.getElementById('slider-glucose-min-value').textContent = newMinValue.toFixed(2);
-    // Optionally, update thumb position visually:
+    
     thumbMin.style.left = `${pos}px`;
-    // Refresh the prediction text:
     updateGlucosePrediction();
   }
   
@@ -2722,9 +2562,18 @@ function setupGlucoseSlider() {
     if (!isDraggingMax) return;
     const sliderRect = slider.getBoundingClientRect();
     let pos = e.clientX - sliderRect.left;
-    pos = Math.max(0, Math.min(pos, sliderRect.width));
+    
+    // Use getComputedStyle to reliably get thumbMin's left position
+    const thumbMinPos = parseFloat(window.getComputedStyle(thumbMin).left) || 0;
+    
+    // Constrain pos so that max thumb cannot go left of the min thumb.
+    pos = Math.max(pos, thumbMinPos);
+    pos = Math.min(pos, sliderRect.width);
+    
     const newMaxValue = minValue + (pos / sliderRect.width) * (maxValue - minValue);
     document.getElementById('slider-glucose-max-value').textContent = newMaxValue.toFixed(2);
+    
+    // Update the max thumb's position.
     thumbMax.style.left = `${pos}px`;
     updateGlucosePrediction();
   }
@@ -2736,10 +2585,7 @@ function setupGlucoseSlider() {
   }
 }
 
-// Ensure that the slider is set up after the DOM content is loaded.
+// Ensure that the slider is set up after the DOM has loaded.
 document.addEventListener("DOMContentLoaded", function() {
   setupGlucoseSlider();
 });
-
-
-
