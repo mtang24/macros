@@ -187,6 +187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     </p>
   `
     renderMacroPieChart(macroAverages);
+    plotCS1Dot();
   }
 
   updatePredictedGroup();
@@ -637,7 +638,9 @@ if (predictionEl) {
 
 });
 
-
+if (document.getElementById("subjectcs2-svg-container")) {
+  plotSubject30Dot();
+}
 
 });
 
@@ -731,6 +734,587 @@ function plotStarterDot() {
 
 // Call the function to render the starter dot.
 plotStarterDot();
+
+function plotCS1Dot() {
+  // Ensure subject metrics have been loaded.
+  if (!window.subjectMetricsResults) {
+    console.error("Subject metrics not loaded yet.");
+    return;
+  }
+  // Get subject 4's metrics from the dataset.
+  const subject4 = window.subjectMetricsResults.find(d => +d.subject === 4);
+  if (!subject4) {
+    console.error("Subject 4 data not found.");
+    return;
+  }
+  
+  // Select the container for subject-cs1 dot.
+  const svgContainer = d3.select("#subjectcs1-svg-container");
+
+  // Set dimensions for the SVG element (for the dot).
+  const width = 500;
+  const height = 500;
+
+  // Create and append an SVG element for the dot.
+  const svg = svgContainer.append("svg")
+                .attr("id", "subjectcs1-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+  // Position the dot (centered within the SVG).
+  subject4.x = width / 2;
+  subject4.y = height / 2;
+  // Compute dot size based on totalCalories using your scale.
+  subject4.size = sizeScale(+subject4.totalCalories);
+
+  // Use your color scale from global configuration.
+  const subjectColor = color(subject4.Diabetes);
+
+  // Ensure the tooltip exists.
+  if (d3.select("#tooltip").empty()) {
+    d3.select("body")
+      .append("div")
+      .attr("id", "tooltip")
+      .style("position", "absolute")
+      .style("opacity", 0)
+      .style("pointer-events", "none");
+  }
+
+  // Append a circle representing subject 4.
+  svg.append("circle")
+    .datum(subject4)
+    .attr("cx", subject4.x)
+    .attr("cy", subject4.y)
+    .attr("r", subject4.size)
+    .attr("fill", subjectColor)
+    .on("mouseover", function(event, d) {
+      d3.select("#tooltip")
+        .style("display", "block")
+        .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+      d3.select("#tooltip")
+        .html(`
+          <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+          <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
+          <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
+          <div style="text-align: left;">Average METs: ${d.avgMETs || 'N/A'}</div>
+          <div style="text-align: left;">Average HR: ${d.avgHR}</div>
+          <div style="text-align: left;">Glucose range: ${d.minGL} - ${d.maxGL}</div>
+        `)
+        .style("left", (event.pageX + 5) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      d3.select("#tooltip")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .on("end", function() {
+          d3.select(this).style("display", "none");
+        });
+    })
+    .on("click", handleDotClick);
+  
+  // Load subject 4 CSV and group data by hour for the calorie time series.
+  d3.csv("data/CGMacros-004/CGMacros-004.csv").then(subject4CSV => {
+    // Define a parser that matches your timestamp format.
+    const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+    const formatDay = d3.timeFormat("%Y-%m-%d");
+
+    // --- Filter out rows where the "Meal Type" column is null, undefined, or empty ---
+    subject4CSV = subject4CSV.filter(d => {
+      return d["Meal Type"] && d["Meal Type"].trim() !== "";
+    });
+
+    /// After filtering and converting subject4CSV…
+    subject4CSV.forEach(d => {
+      d.timestamp = parseTime(d.Timestamp);  // Ensure this matches your CSV header/format.
+      d.day = formatDay(d.timestamp);
+      d.Calories = +d.Calories;
+      d.Carbs = +d.Carbs;
+      d.Protein = +d.Protein;
+      d.Fat = +d.Fat;
+      d.Fiber = +d.Fiber;
+      d["Libre GL"] = +d["Libre GL"];  // Convert Libre GL to a number.
+    });
+
+    // Continue with your dailyData grouping and further processing...
+    const dailyData = Array.from(d3.group(subject4CSV, d => d.day), ([day, values]) => {
+      return {
+        day,
+        avgCalories: d3.mean(values, d => d.Calories),
+        avgCarbs: d3.mean(values, d => d.Carbs),
+        avgProtein: d3.mean(values, d => d.Protein),
+        avgFat: d3.mean(values, d => d.Fat),
+        avgFiber: d3.mean(values, d => d.Fiber)
+      };
+    });
+
+    // Sort dailyData by day chronologically.
+    dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
+    
+    // Now render the comparison chart.
+    // recommendedValues should be defined with the nutritional guidelines for each macro.
+    // For example:
+    const recommendedValues = {
+      avgCarbs: 300,   // e.g., 300 grams of carbohydrates
+      avgProtein: 50,  // e.g., 50 grams of protein
+      avgFat: 70,      // e.g., 70 grams of fat
+      avgFiber: 30     // e.g., 30 grams of fiber
+    };
+  
+    renderDailyComparisonChart(dailyData, recommendedValues);
+
+    // Group data by hour, using d3.timeHour.floor to floor each timestamp.
+    const grouped = d3.groups(subject4CSV, d => d3.timeHour.floor(d.timestamp));
+
+    // Aggregate Calories (using sum) and take the Meal Type from the first record as before.
+    const calorieData = grouped.map(([hour, values]) => ({
+      time: hour,
+      Calories: d3.sum(values, d => d.Calories),
+      mealType: values[0]["Meal Type"]
+    }));
+
+    // For Libre GL, compute the average per hour.
+    const libreData = grouped.map(([hour, values]) => ({
+      time: hour,
+      libreGL: d3.mean(values, d => d["Libre GL"])
+    }));
+
+    console.log("Grouped calorie data by hour:", calorieData);
+    console.log("Grouped Libre GL data by hour:", libreData);
+
+    // Define dimensions and margins.
+    const chartWidth = 500, chartHeight = 200;
+    const margin = { top: 20, right: 60, bottom: 30, left: 40 };  // Increase right margin for second axis
+
+    // Create scales for Calories.
+    const xScale = d3.scaleTime()
+      .domain(d3.extent(calorieData, d => d.time))
+      .range([margin.left, chartWidth - margin.right]);
+
+    const yMaxCalories = d3.max(calorieData, d => d.Calories);
+    const yScaleCalories = d3.scaleLinear()
+      .domain([0, yMaxCalories])
+      .nice()
+      .range([chartHeight - margin.bottom, margin.top]);
+
+    // Create a separate y-scale for Libre GL.
+    const yMaxLibre = d3.max(libreData, d => d.libreGL);
+    const yScaleLibre = d3.scaleLinear()
+      .domain([0, yMaxLibre])
+      .nice()
+      .range([chartHeight - margin.bottom, margin.top]);
+
+    // Define a color scale for meal types.
+    const mealColor = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // Create a container for the plot. Ensure it is centered and appears below your daily comparison chart.
+    const chartContainer = d3.select("#subjectcs1-svg-container")
+      .append("div")
+      .attr("id", "subject4-calories-chart")
+      .style("margin", "20px auto")
+      .style("width", "500px");
+
+    const chartSvg = chartContainer.append("svg")
+      .attr("width", chartWidth)
+      .attr("height", chartHeight);
+
+    // Append x axis.
+    chartSvg.append("g")
+      .attr("transform", `translate(0, ${chartHeight - margin.bottom})`)
+      .call(d3.axisBottom(xScale).ticks(5))
+      .append("text")
+      .attr("fill", "black")
+      .attr("x", chartWidth / 2)
+      .attr("y", margin.bottom - 5)
+      .attr("dy", "0.71em")
+      .attr("text-anchor", "middle")
+      .text("Time");
+
+    // Append left y axis for Calories.
+    chartSvg.append("g")
+      .attr("transform", `translate(${margin.left},0)`)
+      .call(d3.axisLeft(yScaleCalories).ticks(5))
+      .append("text")
+      .attr("fill", "black")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -chartHeight / 2)
+      .attr("y", -35)
+      .attr("dy", "0.71em")
+      .attr("text-anchor", "middle")
+      .text("Calories");
+
+    // Append right y axis for Libre GL.
+    chartSvg.append("g")
+      .attr("transform", `translate(${chartWidth - margin.right}, 0)`)
+      .call(d3.axisRight(yScaleLibre).ticks(5))
+      .append("text")
+      .attr("fill", "black")
+      .attr("transform", "rotate(90)")
+      .attr("x", chartHeight / 2)
+      .attr("y", -margin.right + 15)
+      .attr("dy", "0.71em")
+      .attr("text-anchor", "middle")
+      .text("Libre GL");
+
+    // Plot each calorie data point as a dot.
+    chartSvg.selectAll("circle.data-dot")
+      .data(calorieData)
+      .enter()
+      .append("circle")
+      .attr("class", "data-dot")
+      .attr("cx", d => xScale(d.time))
+      .attr("cy", d => yScaleCalories(d.Calories))
+      .attr("r", 4)
+      .attr("fill", d => mealColor(d.mealType))
+      .on("mouseover", function(event, d) {
+        d3.select("#calorie-tooltip")
+          .style("display", "block")
+          .html(`<strong>Time:</strong> ${d3.timeFormat("%H:%M")(d.time)}<br>
+                <strong>Calories:</strong> ${d.Calories}<br>
+                <strong>Meal Type:</strong> ${d.mealType}`);
+      })
+      .on("mousemove", function(event) {
+        d3.select("#calorie-tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 28) + "px");
+      })
+      .on("mouseout", function() {
+        d3.select("#calorie-tooltip").style("display", "none");
+      });
+
+    // Create (or reuse) a tooltip div.
+    let tooltipDiv = d3.select("#calorie-tooltip");
+    if (tooltipDiv.empty()) {
+      tooltipDiv = d3.select("body")
+        .append("div")
+        .attr("id", "calorie-tooltip")
+        .style("position", "absolute")
+        .style("background", "rgba(255, 255, 255, 0.9)")
+        .style("border", "1px solid #ccc")
+        .style("padding", "6px")
+        .style("border-radius", "4px")
+        .style("pointer-events", "none")
+        .style("font-size", "12px")
+        .style("display", "none");
+    }
+
+    // Draw a line for Libre GL.
+    // Define a line generator using xScale and the Libre GL y-scale.
+    const libreLine = d3.line()
+      .x(d => xScale(d.time))
+      .y(d => yScaleLibre(d.libreGL));
+
+    // Append the Libre GL line (in red).
+    chartSvg.append("path")
+      .datum(libreData)
+      .attr("fill", "none")
+      .attr("stroke", "red")
+      .attr("stroke-width", 2)
+      .attr("d", libreLine);
+
+    // (Add axes and labels as needed, using a time axis for xScale.)
+  }).catch(error => {
+    console.error("Error loading subject 4 CSV:", error);
+  });
+}
+
+function plotSubject30Dot() {
+  // Make sure subject metrics have been loaded
+  if (!window.subjectMetricsResults) {
+    console.error("Subject metrics not loaded yet.");
+    return;
+  }
+
+  // Find subject with id 30
+  const subject30 = window.subjectMetricsResults.find(d => +d.subject === 30);
+  if (!subject30) {
+    console.error("Subject 30 data not found.");
+    return;
+  }
+
+  // Select a container in your new page (make sure this div exists in your HTML)
+  const svgContainer = d3.select("#subjectcs2-svg-container");
+  if (svgContainer.empty()) {
+    console.error("Container #subjectcs2-svg-container not found.");
+    return;
+  }
+
+  // Set dimensions for the SVG element (adjust these as needed)
+  const width = 500;
+  const height = 500;
+
+  // Create and append an SVG element to the container
+  const svg = svgContainer.append("svg")
+                .attr("id", "subject30-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+  // Position the dot in the center (you can adjust if needed)
+  subject30.x = width / 2 - 100;
+  subject30.y = height / 2 - 50;
+
+  // Compute the dot size based on totalCalories using your defined sizeScale
+  subject30.size = sizeScale(+subject30.totalCalories) * 2.5;
+
+  // Use the global color scale to set the dot's color based on its Diabetes group
+  const subjectColor = color(subject30.Diabetes);
+
+  // Append the circle for subject 30
+  svg.append("circle")
+    .datum(subject30)
+    .attr("cx", subject30.x)
+    .attr("cy", subject30.y)
+    .attr("r", subject30.size)
+    .attr("fill", subjectColor)
+    .on("mouseover", function(event, d) {
+      // Optionally, add tooltip behavior similar to your other dot functions
+      d3.select("#tooltip")
+        .style("display", "block")
+        .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+      d3.select("#tooltip")
+        .html(`
+          <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+          <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
+          <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
+          <div style="text-align: left;">Average HR: ${d.avgHR}</div>
+          <div style="text-align: left;">Glucose range: ${d.minGL} - ${d.maxGL}</div>
+        `)
+        .style("left", (event.pageX + 5) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      d3.select("#tooltip")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .on("end", function() {
+          d3.select(this).style("display", "none");
+        });
+    })
+    .on("click", handleDotClick); // Uses your existing click handler
+}
+
+
+// function renderSubjectMacroPieChart(subject) {
+//   // Prepare the data array for macros.
+//   const macros = [
+//     { macro: "Carbs", value: +subject.avgCarbs },
+//     { macro: "Protein", value: +subject.avgProtein },
+//     { macro: "Fat", value: +subject.avgFat },
+//     { macro: "Fiber", value: +subject.avgFiber }
+//   ];
+
+//   // Set dimensions and radius for the pie chart.
+//   const width = 300;
+//   const height = 300;
+//   const radius = Math.min(width, height) / 2;
+
+//   // Create an SVG container inside a designated container div.
+//   const svg = d3.select("#subjectMacroPieChartContainer")
+//     .append("svg")
+//     .attr("width", width)
+//     .attr("height", height)
+//     .append("g")
+//     .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+//   // Define a color scale for the macros.
+//   const color = d3.scaleOrdinal()
+//     .domain(macros.map(d => d.macro))
+//     .range(["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"]);
+
+//   // Define the pie generator.
+//   const pie = d3.pie().value(d => d.value);
+
+//   // Define the arc generator.
+//   const arc = d3.arc()
+//     .innerRadius(0)
+//     .outerRadius(radius);
+
+//   // Draw the pie slices.
+//   svg.selectAll("path")
+//     .data(pie(macros))
+//     .enter()
+//     .append("path")
+//     .attr("d", arc)
+//     .attr("fill", d => color(d.data.macro))
+//     .attr("stroke", "#fff")
+//     .style("stroke-width", "2px");
+
+//   // Add labels to each slice.
+//   svg.selectAll("text")
+//     .data(pie(macros))
+//     .enter()
+//     .append("text")
+//     .attr("transform", d => `translate(${arc.centroid(d)})`)
+//     .attr("text-anchor", "middle")
+//     .attr("font-size", "12px")
+//     .attr("fill", "#fff")
+//     .text(d => {
+//       // Calculate the percentage.
+//       const total = d3.sum(macros, m => m.value);
+//       const percent = ((d.data.value / total) * 100).toFixed(1);
+//       return `${d.data.macro}: ${percent}%`;
+//     });
+// }
+
+function computeDailyAverages(data) {
+  // Create a time parser to parse the full timestamp.
+  const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+  // Create a formatter to extract just the day.
+  const formatDay = d3.timeFormat("%Y-%m-%d");
+
+  // Parse each record’s timestamp and add a day property.
+  data.forEach(d => {
+    // Adjust the property name if your timestamp field is named differently.
+    d.timestamp = parseTime(d.timestamp);
+    d.day = formatDay(d.timestamp);
+  });
+
+  // Group the data by day.
+  const dataByDay = d3.group(data, d => d.day);
+
+  // Compute averages for each macro per day.
+  const dailyAverages = Array.from(dataByDay, ([day, values]) => ({
+    day,
+    avgCarbs: d3.mean(values, d => +d.avgCarbs),
+    avgProtein: d3.mean(values, d => +d.avgProtein),
+    avgFat: d3.mean(values, d => +d.avgFat),
+    avgFiber: d3.mean(values, d => +d.avgFiber)
+  }));
+
+  // Sort days in chronological order.
+  dailyAverages.sort((a, b) => new Date(a.day) - new Date(b.day));
+  return dailyAverages;
+}
+
+// 2. Define your recommended daily nutritional values.
+const recommendedValues = {
+  avgCarbs: 300,   // e.g., 300 grams of carbohydrates
+  avgProtein: 50,  // e.g., 50 grams of protein
+  avgFat: 70,      // e.g., 70 grams of fat
+  avgFiber: 30     // e.g., 30 grams of fiber
+};
+
+// 3. Render a line chart comparing subject's daily macro averages to the recommended values.
+function renderDailyComparisonChart(dailyData, recommended) {
+  const margin = { top: 50, right: 120, bottom: 50, left: 50 };
+  const width = 800 - margin.left - margin.right;
+  const height = 400 - margin.top - margin.bottom;
+
+  const svg = d3.select("#dailyComparisonChartContainer")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Define the macros to plot.
+  const macros = ["avgCarbs", "avgProtein", "avgFat", "avgFiber"];
+
+  // Use a scalePoint for the x-axis (days).
+  const xScale = d3.scalePoint()
+    .domain(dailyData.map(d => d.day))
+    .range([0, width])
+    .padding(0.5);
+
+  // For the y-axis, set the maximum based on both subject data and recommended values.
+  const maxSubjectValue = d3.max(dailyData, d => d3.max(macros, macro => d[macro]));
+  const maxRecommended = d3.max(Object.values(recommended));
+  const yMax = Math.max(maxSubjectValue, maxRecommended);
+  const yScale = d3.scaleLinear()
+    .domain([0, yMax * 1.1])
+    .range([height, 0]);
+
+  // Add x-axis.
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(xScale));
+
+  // Add y-axis.
+  svg.append("g")
+    .call(d3.axisLeft(yScale));
+
+  // Define a color scale for the macros.
+  const color = d3.scaleOrdinal()
+    .domain(macros)
+    .range(["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"]);
+
+  // Create a line generator for each macro.
+  macros.forEach(macro => {
+    const lineGenerator = d3.line()
+      .x(d => xScale(d.day))
+      .y(d => yScale(d[macro]));
+
+    // Draw the line for the current macro.
+    svg.append("path")
+      .datum(dailyData)
+      .attr("fill", "none")
+      .attr("stroke", color(macro))
+      .attr("stroke-width", 2)
+      .attr("d", lineGenerator);
+
+    // Draw circles at each data point.
+    svg.selectAll(`.circle-${macro}`)
+      .data(dailyData)
+      .enter()
+      .append("circle")
+      .attr("class", `circle-${macro}`)
+      .attr("cx", d => xScale(d.day))
+      .attr("cy", d => yScale(d[macro]))
+      .attr("r", 4)
+      .attr("fill", color(macro));
+
+    // Draw a horizontal dashed line for the recommended value.
+    svg.append("line")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", yScale(recommended[macro]))
+      .attr("y2", yScale(recommended[macro]))
+      .attr("stroke", color(macro))
+      .attr("stroke-dasharray", "4 2")
+      .attr("stroke-width", 1);
+
+    // Add a label for the recommended line.
+    svg.append("text")
+      .attr("x", width + 5)
+      .attr("y", yScale(recommended[macro]))
+      .attr("dy", "0.35em")
+      .attr("fill", color(macro))
+      .style("font-size", "12px")
+      .text(`${macro.replace("avg", "")} Rec: ${recommended[macro]}`);
+  });
+
+  // Add a chart title.
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", -20)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("font-weight", "bold")
+    .text("Daily Macro Averages vs. Recommended Nutritional Values");
+
+  // Add x-axis label.
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height + 40)
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px")
+    .text("Day");
+
+  // Add y-axis label.
+  svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", -40)
+    .attr("x", -height / 2)
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px")
+    .text("Grams");
+}
 
 
 

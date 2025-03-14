@@ -182,6 +182,10 @@ h2 {
   margin-bottom: 10px; /* Adjust this value as needed */
 }
 
+#page-2 h2 {
+  margin-bottom: 20px;
+}
+
 
 
 
@@ -495,3 +499,19 @@ h2 {
   margin-bottom: 0px;
 }
 
+.subjectcs1-container {
+  display: flex;
+  flex-direction: row;      /* arrange children side by side */
+  align-items: center;      /* vertically center them */
+  justify-content: center;  /* center the layout horizontally */
+  gap: 20px;                /* optional spacing between the dot and pie chart */
+}
+
+#subjectcs1-svg-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  width: 100%;
+}
