@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html class="home" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metabolic Health Data</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="assets/chart_icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div id="global-info">
+      <span id="global-info-icon">i</span>
+      <div id="global-info-tooltip">
+        <p>Scroll up or down to explore the visualizations and insights on metabolic health metrics.</p>
+        <p>The page indicator menu on the right helps track the current page you are on.</p>
+        <p>Click "Read more" to navigate to the next page, or any dot in the menu to navigate to that page.</p>
+      </div>
+    </div>
+
+    <div id="slider-container">
+        <div class="slider-item">
+          <span class="slider-label">Avg Daily Calories</span>
+          <span class="slider-value">2000.00</span>
+          <input type="range" id="slider-calories" min="0" max="36000" step="0.01" value="20000">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">Avg METs</span>
+          <span class="slider-value">0.00</span>
+          <input type="range" id="slider-mets" min="0" max="30" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">Avg HR</span>
+          <span class="slider-value">40.00</span>
+          <input type="range" id="slider-hr" min="40" max="100" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item" id="slider-glucose-container">
+          <span class="slider-label">Glucose Levels Range</span>
+          <span class="slider-value">
+            Range: <span id="slider-glucose-min-value">40.00</span> -
+            <span id="slider-glucose-max-value">410.00</span>
+          </span>
+          <div class="range-slider">
+            <div class="range-track"></div>
+            <div class="range-thumb" id="thumb-min"></div>
+            <div class="range-thumb" id="thumb-max"></div>
+          </div>
+        </div>
+        <div class="slider-item">
+          <span class="slider-label">BMI</span>
+          <span class="slider-value">0.00</span>
+          <!-- Here I've chosen 100 as an extreme but technically possible BMI -->
+          <input type="range" id="slider-bmi" min="0" max="100" step="0.01" value="0.00">
+        </div>
+        <div class="slider-item">
+            <span class="slider-label">Diabetes Group</span>
+            <select id="slider-group">
+              <option value="Healthy">Healthy</option>
+              <option value="Pre-Diabetes">Pre-Diabetes</option>
+              <option value="Type 2 Diabetes">Type 2 Diabetes</option>
+            </select>
+          </div>
+      </div>
+    <div id="snap-container">
+      <section id="starter-page">
+        <h1>🤔 Could Your Metabolic Health Be at Risk?</h1>
+        <h2>1 in 3 adults has prediabetes—and most don't even know it.</h2>
+        <div class="starter-container">
+          <!-- Container for the SVG with the dot -->
+          <div id="starter-svg-container"></div>
+          <!-- Container for the SVG with the pie chart -->
+          <!-- Container for the descriptive text -->
+          <div id="starter-text">
+            <p>
+              This dot represents a  
+              <span class="person">real person</span>—one participant in a 
+              <a href="https://physionet.org/content/cgmacros/1.0.0/" target="_blank">study</a> tracking 45 individuals over 10 days. Each subject belongs to one of three metabolic health groups: 
+              <span class="healthy">Healthy</span>, 
+              <span class="prediabetic">Pre-Diabetic</span>, or 
+              <span class="type2">Type 2 Diabetic</span>, with their daily activities, lab values, and metabolic data recorded.
+              How do their lifestyles compare to yours?
+            </p>
+          </div>
+        </div>
+      </section>
+   
+      <section id="label-page">
+        <h1>Taking a look at a healthy subject</h1>
+        <h2>Eating fewer calories doesn't necessarily mean better metabolic health.</h2>
+        <div class="label-container">
+        </div>
+      </section>
+
+      <section id="subjectcs1-page">
+        <h1>Taking a look at a healthy subject</h1>
+        <h2>Eating fewer calories doesn't necessarily mean better metabolic health.</h2>
+        <div class="subjectcs1-container">
+          <!-- Container for the SVG with the dot -->
+          <div id="dailyComparisonChartContainer"></div>
+          <div id="subjectcs1-svg-container"></div>
+          <!-- Container for the descriptive text -->
+          <div id="subjectcs1-text">
+            <p>
+              Calories consumed
+            </p>
+          </div>
+          
+        </div>
+      </section>
+      <h2>Timeline</h2>
+      <div id="timeline-container"></div>
+      <section id="subjectcs2" style="justify-content: flex-start; padding-top: 20px;">
+        <h2>A Look at a Diabetic Subject</h2>
+        <h3>What can we learn from the individual with the widest glucose range?</h3>
+        <div id="subjectcs2-svg-container"></div>
+        <!-- Add additional content here as needed -->
+      </section>
+         
+
+        <section id="visualization">
+          <h2> 📊 Subject Data: Tracking Metabolic Health
+          </h2>
+          <div id="chart" class="chart-container"> <svg id="grid" width="1000" height="700"></svg> </div> 
+          <p> 
+            Over a 10-day study, 45 participants were monitored to track key health parameters, including continuous 
+            glucose levels, macronutrient consumption, and heart rate. Each dot represents an individual subject, 
+            grouped by their metabolic health status.
+            Hover over each dot to see a summary of the collected data. To learn more about the study,
+            <a href="https://physionet.org/content/cgmacros/1.0.0/" target="_blank">click here</a>.            
+          </p>
+          <div id="tooltip" class="tooltip" style="opacity: 0; position: absolute; display: none;"></div>
+        </section>
+    
+        <section id="page-2">
+          <h2>Diabetics Consumed Fewer Calories on Average</h2>
+          <h4></h4>
+          <div id="sample-text-box">
+            The graph below shows the <strong>average calories consumed for each subject or group over the 10-day period</strong>, depending on the selected view. Try moving the slider to match your calorie consumption over the same 10-day period and see where your value falls on both views!
+          </div>
+          <div id="view-toggle">
+            <input type="radio" id="swarm-view" name="view" value="swarm" checked>
+            <label for="swarm-view">Individual View</label>
+            <input type="radio" id="grouped-view" name="view" value="grouped">
+            <label for="grouped-view">Grouped View</label>
+          </div>
+          <div id="axes-container"></div>
+          <p>Notice that the previously highlighted subjects all appear on this graph! Try to find them based on the calorie statistics we provieded and see where they fall relative to the other individuals as well! <strong>You may notice the following:...</strong></p>
+        </section>
+        
+        <section id="page-3">
+
+        </section>
+
+        <section id="page-6">
+            <h2>Average Heart Rate Shows Minimal Variation Between Groups</h2>
+            <p>
+              The visualization below displays the average heart rate of participants over the 10-day study. Each subject's heart rate was recorded using minute-level data from the Fitbit Sense Smartwatch, measured in beats per minute. Each dot represents an individual participant, grouped by health status.
+              <br><br>Use the slider to move the black dot across all three groups and adjust your heart rate. See where your value falls in comparison to the study participants!              
+            </p>
+            <div class="chart-container" id="hr-container"></div>
+        </section>
+
+        <section id="page-5">
+          <h2>However, glucose levels are still the best predictor of diabetic groups...</h2>
+          <p> This plot shows the range of blood glucose levels measured by the Libre Pro sensor for 
+            each subject over a 10-day period. The color of the line represents the
+            subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, 
+            and red representing Type II diabetes. While other metrics we have explored are important, glucose levels
+            are closely linked to the body's ability to manage and process sugar, which is the defining feature of diabetes. 
+            This makes glucose levels the most reliable predictor of metabolic health status.
+            
+          </p>
+          <p>
+            Hovering over a line will display the subject's ID and the
+            range of glucose levels for that subject. Adjust the slider for glucose range to see how your predicted
+            metabolic group changes based on your glucose levels!
+          </p>
+          <div class="chart-container" id="glrange-container"></div>
+        </section>
+
+        <section id="page-final">
+          <h1>Putting it all together: Making Predictions and Moving Forward</h1>
+          <p>Hopefully, you have had time to engage with all of the health metric visualizations! Each interactive graph allowed you to search for trends and patterns across metabolic health groups for these different metrics	.
+            However, you may have noticed that the measurements for these metrics aren’t always as determinant of a subject’s metabolic health group as you may initially think. For example, it is surprisingly the case that diabetics consume the least calories per day on average, while the subject that consumed the most calories falls into the “healthy” group.
+            As such, your predicted metabolic health group should not be treated as an absolute assessment, but rather a possible indicator or warning based on some common but important metrics.
+            </p>
+          <p>If you are to take something from this metabolic insights journey, let it be that <strong>improving or maintaining your health requires making smart decisions across all of these metrics and more</strong>, which will benefit any reader, regardless of their metabolic health status.</p>
+          <h3>Predictions:</h3>
+          <ul>
+            <li id="prediction-calories">
+              Your Average Daily Calorie Intake: <strong>2000.00</strong> Calories
+            </li>
+            <li id="prediction-hr">
+              Your Average Heart Rate: <strong>40.00</strong> BPM
+            </li>
+            <li id="prediction-glucose">
+              Your Glucose Range: <strong>100.00</strong> - <strong>200.00</strong> mg/dL
+            </li>
+            <li id="prediction-group">
+              Your <strong>Predicted</strong> Metabolic Health Group: <strong>Pre-Diabetes</strong> 
+              <span class="color-box" style="display:inline-block;width:15px;height:15px;background:#FDB863;margin-left:5px;"></span>
+            </li>
+          </ul>
+          <p id="prediction-summary"></p>
+        </section>
+
+        <section id="info-section">
+            <h2>About the visualization</h2>
+            <p>
+                The first visualization on this webpage shows aggregate data for individual subjects across three diabetic groups: healthy, pre-diabetes, and Type II diabetes. Each dot represents one subject, with the dot's size based on total calories consumed by the subject during a 10-day period. The color encodings are chosen to correspond with the severity of the subject's metabolic health group, with blue representing healthy, orange representing pre-diabetes, and red representing Type II diabetes. Hovering over a dot allows the user to view some details about the subject's condition, including total calories and average heart rate. Clicking on a dot takes the user to a details page that displays this information separately, and scrolling on this page will take the user back to the home visualization page. The clickability is just a placeholder for now and might be used throughout the visualization if needed. We also made it possible to scroll down on the page to access the next ‘slide’. This will be helpful to access our other visuals further down in our ‘scrollytelling’ experience. At the end of the visualization, the user will be able to understand a summary of these metrics across groups and what are the different lifestyles for diabetics and non-diabetics.             </p>
+            <p>
+                Further challenges involved in this project will entail adding more pages that the user can scroll to, including pages that show the distribution of several metrics, such as calories, heart rate, and MET (metabolic equivalent of task). A bigger challenge we foresee is implementing the idea of our main interaction feature - where users can input values for BMI and heart rate and see their dots within each visualization relative to subjects in the three groups. Additionally, they should be able to adjust their values dynamically, seeing how each change affects their placement relative to each group in real time. However, we need to ensure that moving the user’s point doesn’t unintentionally overlap with or alter the positioning of the existing data points, which could make the visualization misleading or difficult to interpret.            </p>
+        </section>
+
+        <!-- <section id="page-4">
+          <h2>BMI</h2>
+        </section> -->
+        
+    </div>
+
+    <div id="page-indicator"></div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="slider.js" type="module"></script>
+    <script src="global.js" type="module"></script>
+</body>
+</html>
