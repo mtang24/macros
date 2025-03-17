@@ -1299,35 +1299,49 @@ scrollArrow.addEventListener("click", function() {
 
   // Healthy circles click handler.
   // Example update for healthy circles tooltip:
+// healthyCircles
+// .on("mouseover", (event, d) => {
+//   d3.select("#tooltip")
+//     .style("display", "block")
+//     .transition()
+//       .duration(200)
+//       .style("opacity", 0.9);
+//   d3.select("#tooltip")
+//     .html(
+//       `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+//        <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
+//        <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
+//        <div style="text-align: left;">Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</div>
+//        <div style="text-align: left;">Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</div>
+//        <div style="text-align: left;">Glucose range: ${d.minGL !== undefined ? d.minGL : 'N/A'}-${d.maxGL !== undefined ? d.maxGL : 'N/A'}</div>`
+//     )
+//     .style("left", (event.pageX + 5) + "px")
+//     .style("top", (event.pageY - 28) + "px");
+// })
+// .on("mouseout", () => {
+//   d3.select("#tooltip")
+//     .transition()
+//     .duration(500)
+//     .style("opacity", 0)
+//     .on("end", function() {
+//        d3.select(this).style("display", "none");
+//     });
+// })
+// .on("click", handleDotClick);
 healthyCircles
-.on("mouseover", (event, d) => {
-  d3.select("#tooltip")
-    .style("display", "block")
-    .transition()
-      .duration(200)
-      .style("opacity", 0.9);
-  d3.select("#tooltip")
-    .html(
-      `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-       <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-       <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-       <div style="text-align: left;">Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Glucose range: ${d.minGL !== undefined ? d.minGL : 'N/A'}-${d.maxGL !== undefined ? d.maxGL : 'N/A'}</div>`
-    )
-    .style("left", (event.pageX + 5) + "px")
-    .style("top", (event.pageY - 28) + "px");
-})
-.on("mouseout", () => {
-  d3.select("#tooltip")
-    .transition()
-    .duration(500)
-    .style("opacity", 0)
-    .on("end", function() {
-       d3.select(this).style("display", "none");
-    });
-})
-.on("click", handleDotClick);
+  .on("mouseover", (event, d) => {
+    updateTooltipNutritionLabel(event, d);
+  })
+  .on("mouseout", () => {
+    d3.select("#tooltip")
+      .transition()
+      .duration(500)
+      .style("opacity", 0)
+      .on("end", function() {
+         d3.select(this).style("display", "none");
+      });
+  })
+  .on("click", handleDotClick);
 
 // Similarly update the tooltip code for preCircles and type2Circles:
 preCircles
@@ -2829,13 +2843,14 @@ function plotSubjectLabel(subjectNum) {
     .style("background-color", "white");
   
   // Create a slider element.
+  // Note: We are calling it "slider" to keep naming consistent.
   const slider = container.append("input")
     .attr("type", "range")
     .attr("id", "day-slider")
     .style("width", "100%")
     .style("margin-bottom", "10px");
   
-  // Create the label container (without the debug outline).
+  // Create the label container.
   const labelContainer = container.append("div")
     .attr("id", "subject-label-container")
     .style("padding", "10px")
@@ -2850,7 +2865,7 @@ function plotSubjectLabel(subjectNum) {
     const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
     const formatDay = d3.timeFormat("%Y-%m-%d");
     
-    // Filter rows that have a valid "Meal Type".
+    // Filter rows with a valid "Meal Type".
     const filteredCSV = csvData.filter(d => d["Meal Type"] && d["Meal Type"].trim() !== "");
     if (filteredCSV.length === 0) {
       console.error("DEBUG: No valid rows after filtering 'Meal Type'.");
@@ -2892,16 +2907,12 @@ function plotSubjectLabel(subjectNum) {
     slider.attr("min", 1)
       .attr("max", dailyData.length)
       .attr("value", 1);
-    
-    // Function to update label based on slider day.
+  
     function updateLabel(dayIndex) {
-      const d0 = dailyData[dayIndex - 1]; // dayIndex is 1-based
-      if (!d0) {
-        console.error("No data for day", dayIndex);
-        return;
-      }
+      const d0 = dailyData[dayIndex - 1]; // 1-based index
+      if (!d0) return;
       const nfData = {
-        day: dayIndex,
+        day: d0.day,
         calories: +d0.totalCalories.toFixed(1),
         fat: +d0.totalFat.toFixed(1),
         dailyFat: ((+d0.totalFat / recommendedValues.avgFat) * 100).toFixed(1),
@@ -2912,28 +2923,25 @@ function plotSubjectLabel(subjectNum) {
         fiber: +d0.totalFiber.toFixed(1),
         dailyFiber: ((+d0.totalFiber / recommendedValues.avgFiber) * 100).toFixed(1)
       };
-      console.log("Computed nfData:", nfData);
-      const labelElement = createNutritionFactsLabel(nfData);
-      console.log("Returned labelElement:", labelElement);
       labelContainer.html("");
-      labelContainer.node().appendChild(labelElement);
+      labelContainer.node().appendChild(createNutritionFactsLabel(nfData));
+      // Update timeline to show only images for this day:
+      loadAndRenderTimeline(subjectNum, d0.day);
     }
     
-    // Set up slider event handler.
+    // Use the same slider variable when adding the event listener.
     slider.on("input", function() {
       const val = parseInt(this.value);
       console.log("Slider value changed to:", val);
       updateLabel(val);
     });
-    
+  
     // Initial update for day 1.
     updateLabel(1);
-    
   }).catch(function(error) { 
     console.error(`DEBUG: Error loading subject ${subjectNum} CSV:`, error);
   });
 }
-
 
 const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
 const formatTime = d3.timeFormat("%Y-%m-%d %H:%M:%S");
@@ -2957,7 +2965,6 @@ d3.csv("data/CGMacros-032/CGMacros-032.csv").then(function (csvData) {
 }).catch(function (error) {
   console.error("Error loading or processing CSV file:", error);
 });
-
 
 function renderTimeline(imageData) {
   d3.select("#timeline-container").remove();
@@ -2993,6 +3000,7 @@ function renderTimeline(imageData) {
         tooltip.html(`
           <div class="nutrition-tooltip">
             <strong>${d['Meal Type'] || 'Meal'}</strong>
+            <div>Calories: ${d.Calories.toFixed(1)} kcal</div>
             <div>Carbs: ${d.Carbs.toFixed(1)}g</div>
             <div>Protein: ${d.Protein.toFixed(1)}g</div>
             <div>Fat: ${d.Fat.toFixed(1)}g</div>
@@ -3024,9 +3032,10 @@ function renderTimeline(imageData) {
     });
 }
 
-async function loadAndRenderTimeline(subjectNumber) {
+async function loadAndRenderTimeline(subjectNumber, dayFilter) {
   const subjectStr = subjectNumber.toString().padStart(3, '0');
   const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
+  const formatDay = d3.timeFormat("%Y-%m-%d");
 
   try {
     const csvData = await d3.csv(csvPath);
@@ -3035,38 +3044,132 @@ async function loadAndRenderTimeline(subjectNumber) {
     const imageData = csvData
       .filter(d => d["Image path"] && d["Image path"].trim() !== "")
       .map(d => {
-        // Validate timestamp
         const timestamp = parseTime(d.Timestamp);
         if (!timestamp) {
           console.warn("Invalid timestamp:", d.Timestamp);
           return null;
         }
-
-        // Validate numeric values using helper function
-        const safeNumber = (val, fallback = 0) => 
+        if (!d["Meal Type"] || d["Meal Type"].trim().toLowerCase() === "unspecified meal") {
+          return null;
+        }
+        // Compute day property
+        const day = formatDay(timestamp);
+        const safeNumber = (val, fallback = 0) =>
           isNaN(parseFloat(val)) ? fallback : parseFloat(val);
-
         return {
           timestamp: timestamp,
+          day: day, // store day for filtering
           imagePath: `data/CGMacros-${subjectStr}/${d["Image path"].trim()}`,
           Carbs: safeNumber(d.Carbs),
           Protein: safeNumber(d.Protein),
           Fat: safeNumber(d.Fat),
           Fiber: safeNumber(d.Fiber),
-          'Meal Type': d['Meal Type'] || 'Unspecified Meal',
+          Calories: safeNumber(d.Calories),
+          'Meal Type': d['Meal Type'].trim(),
           'Amount Consumed': d['Amount Consumed']
         };
       })
-      .filter(d => d !== null); // Remove any invalid entries
+      .filter(d => d !== null)
+      // If a dayFilter is provided, only keep rows matching that day.
+      .filter(d => !dayFilter || d.day === dayFilter);
 
     renderTimeline(imageData);
   } catch (error) {
     console.error(`Error loading timeline for subject ${subjectNumber}:`, error);
-    // Optionally show user feedback
     d3.select("#timeline-container").html(`
       <div class="error-message">
         Could not load meal history for subject ${subjectNumber}
       </div>
     `);
   }
+}
+
+function updateTooltipNutritionLabel(event, d) {
+  // Immediately display the tooltip.
+  d3.select("#tooltip")
+    .style("display", "block")
+    .transition()
+      .duration(200)
+      .style("opacity", 0.9);
+  
+  // Clear the tooltip content.
+  d3.select("#tooltip").html("");
+
+  // Build CSV path using subject padded to three digits.
+  const subjectStr = d.subject.toString().padStart(3, '0');
+  const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
+  console.log("DEBUG: Loading CSV for tooltip nutrition label from:", csvPath);
+
+  d3.csv(csvPath).then(function(csvData) {
+    const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+    const formatDay = d3.timeFormat("%Y-%m-%d");
+
+    // Filter rows that have a valid "Meal Type".
+    const filteredCSV = csvData.filter(row => row["Meal Type"] && row["Meal Type"].trim() !== "");
+    if (filteredCSV.length === 0) {
+      console.error("DEBUG: No valid rows after filtering 'Meal Type'.");
+      return;
+    }
+
+    // Convert fields.
+    filteredCSV.forEach(row => {
+      row.timestamp = parseTime(row.Timestamp);
+      row.day = formatDay(row.timestamp);
+      row.Calories = +row.Calories;
+      row.Carbs = +row.Carbs;
+      row.Protein = +row.Protein;
+      row.Fat = +row.Fat;
+      row.Fiber = +row.Fiber;
+      row["Libre GL"] = +row["Libre GL"];
+    });
+
+    // Group data by day.
+    const dailyData = Array.from(d3.group(filteredCSV, row => row.day), ([day, values]) => ({
+      day,
+      totalCalories: d3.sum(values, row => row.Calories),
+      totalCarbs: d3.sum(values, row => row.Carbs),
+      totalProtein: d3.sum(values, row => row.Protein),
+      totalFat: d3.sum(values, row => row.Fat),
+      totalFiber: d3.sum(values, row => row.Fiber)
+    }));
+    dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
+    console.log("DEBUG: Computed dailyData for tooltip label:", dailyData);
+
+    // Compute aggregate averages over all days.
+    const aggregated_nfData = {
+      calories: +d3.mean(dailyData, d => d.totalCalories).toFixed(1),
+      carbs: +d3.mean(dailyData, d => d.totalCarbs).toFixed(1),
+      protein: +d3.mean(dailyData, d => d.totalProtein).toFixed(1),
+      fat: +d3.mean(dailyData, d => d.totalFat).toFixed(1),
+      fiber: +d3.mean(dailyData, d => d.totalFiber).toFixed(1)
+    };
+
+    // Define recommended values (same as used in your nutrition label).
+    const recommendedValues = {
+      avgCarbs: 300,
+      avgProtein: 50,
+      avgFat: 70,
+      avgFiber: 30
+    };
+
+    // Calculate daily percentages.
+    aggregated_nfData.dailyCarbs = ((aggregated_nfData.carbs / recommendedValues.avgCarbs) * 100).toFixed(1);
+    aggregated_nfData.dailyProtein = ((aggregated_nfData.protein / recommendedValues.avgProtein) * 100).toFixed(1);
+    aggregated_nfData.dailyFat = ((aggregated_nfData.fat / recommendedValues.avgFat) * 100).toFixed(1);
+    aggregated_nfData.dailyFiber = ((aggregated_nfData.fiber / recommendedValues.avgFiber) * 100).toFixed(1);
+
+    // Create the nutrition facts label element.
+    const labelElement = createNutritionFactsLabel(aggregated_nfData);
+    console.log("DEBUG: Nutrition label element:", labelElement);
+
+    // Append the label element to the tooltip.
+    d3.select("#tooltip").node().appendChild(labelElement);
+
+    // Set the tooltip position.
+    d3.select("#tooltip")
+      .style("left", (event.pageX + 5) + "px")
+      .style("top", (event.pageY - 28) + "px");
+  }).catch(function(error) {
+    console.error("DEBUG: Error loading CSV for tooltip nutrition label:", error);
+  });
 }
