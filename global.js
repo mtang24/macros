@@ -1041,67 +1041,6 @@ function plotSubject30Dot() {
 }
 
 
-// function renderSubjectMacroPieChart(subject) {
-//   // Prepare the data array for macros.
-//   const macros = [
-//     { macro: "Carbs", value: +subject.avgCarbs },
-//     { macro: "Protein", value: +subject.avgProtein },
-//     { macro: "Fat", value: +subject.avgFat },
-//     { macro: "Fiber", value: +subject.avgFiber }
-//   ];
-
-//   // Set dimensions and radius for the pie chart.
-//   const width = 300;
-//   const height = 300;
-//   const radius = Math.min(width, height) / 2;
-
-//   // Create an SVG container inside a designated container div.
-//   const svg = d3.select("#subjectMacroPieChartContainer")
-//     .append("svg")
-//     .attr("width", width)
-//     .attr("height", height)
-//     .append("g")
-//     .attr("transform", `translate(${width / 2}, ${height / 2})`);
-
-//   // Define a color scale for the macros.
-//   const color = d3.scaleOrdinal()
-//     .domain(macros.map(d => d.macro))
-//     .range(["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"]);
-
-//   // Define the pie generator.
-//   const pie = d3.pie().value(d => d.value);
-
-//   // Define the arc generator.
-//   const arc = d3.arc()
-//     .innerRadius(0)
-//     .outerRadius(radius);
-
-//   // Draw the pie slices.
-//   svg.selectAll("path")
-//     .data(pie(macros))
-//     .enter()
-//     .append("path")
-//     .attr("d", arc)
-//     .attr("fill", d => color(d.data.macro))
-//     .attr("stroke", "#fff")
-//     .style("stroke-width", "2px");
-
-//   // Add labels to each slice.
-//   svg.selectAll("text")
-//     .data(pie(macros))
-//     .enter()
-//     .append("text")
-//     .attr("transform", d => `translate(${arc.centroid(d)})`)
-//     .attr("text-anchor", "middle")
-//     .attr("font-size", "12px")
-//     .attr("fill", "#fff")
-//     .text(d => {
-//       // Calculate the percentage.
-//       const total = d3.sum(macros, m => m.value);
-//       const percent = ((d.data.value / total) * 100).toFixed(1);
-//       return `${d.data.macro}: ${percent}%`;
-//     });
-// }
 
 function computeDailyAverages(data) {
   // Create a time parser to parse the full timestamp.
@@ -1257,43 +1196,6 @@ function renderDailyComparisonChart(dailyData, recommended) {
     .text("Grams");
 }
 
-
-
-  // const simulation = d3.forceSimulation(nodes)
-  //                      .force("x", d3.forceX(d => xScale(d.group) + xScale.bandwidth() / 2).strength(1))
-  //                      .force("y", d3.forceY(d => yScale(d.totalCalories)).strength(1))
-  //                      .force("collide", d3.forceCollide(dotRadius + 1))
-  //                      .stop();
-  // for (let i = 0; i < 120; ++i) simulation.tick();
-
-  // const dots = dataGroup.selectAll(".dot")
-  //     .data(nodes)
-  //     .enter()
-  //     .append("circle")
-  //     .attr("class", "dot")
-  //     .attr("cx", d => d.x)
-  //     .attr("cy", d => d.y)
-  //     .attr("r", dotRadius)
-  //     .attr("fill", d => groupColor[d.group])
-  //     .style("opacity", 0);
-
-  // dots.transition().duration(500).style("opacity", 1);
-
-  // const tooltip = d3.select("body").select("#swarm-tooltip");
-  // dots.on("mouseover", function(event, d) {
-  //      const fillColor = d3.select(this).attr("fill");
-  //      const lightFill = lightenColor(fillColor, 0.7);
-  //      tooltip.html(`<strong>Subject ${d.subject}</strong><br/>Total Calories: ${d.totalCalories}`)
-  //             .style("background", lightFill)
-  //             .style("opacity", 1);
-  // })
-  // .on("mousemove", function(event) {
-  //      tooltip.style("left", (event.pageX + 10) + "px")
-  //             .style("top", (event.pageY - 20) + "px");
-  // })
-  // .on("mouseout", function() {
-  //      tooltip.style("opacity", 0);
-  // });
 
 
   function plotDexcomGL() {
@@ -1934,83 +1836,6 @@ window.addEventListener("wheel", function handleScroll(e) {
   }
 });
 
-// function plotBMIDots() {
-//   // Ensure BMI values are numeric.
-//   data.forEach(d => { d.BMI = +d.BMI; });
-  
-//   const width = 800, height = 400;
-//   const margin = { top: 40, right: 40, bottom: 40, left: 40 };
-//   const innerWidth = width - margin.left - margin.right;
-//   const innerHeight = height - margin.top - margin.bottom;
-  
-//   // Determine the min/max BMI.
-//   const minBMI = d3.min(data, d => d.BMI);
-//   const maxBMI = d3.max(data, d => d.BMI);
-  
-//   // Use BMI to determine vertical positions.
-//   const yScale = d3.scaleLinear()
-//                    .domain([minBMI, maxBMI])
-//                    .range([innerHeight, 0])
-//                    .nice();
-  
-//   // Create an x-scale for horizontal jitter.
-//   const xScale = d3.scaleLinear()
-//                    .domain([0, 1])
-//                    .range([0, innerWidth]);
-  
-//   // Define a color scale based on diabetes status.
-//   const colorScale = d3.scaleOrdinal()
-//                        .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
-//                        .range(["#2C7BB6", "#FDB863", "#D7191C"]);
-  
-//   // Append the SVG to page-4.
-//   const svg = d3.select("#page-4")
-//                 .append("svg")
-//                 .attr("id", "bmi-chart")
-//                 .attr("width", width)
-//                 .attr("height", height);
-                        
-//   const g = svg.append("g")
-//                .attr("transform", `translate(${margin.left},${margin.top})`);
-  
-//   // Plot circles for each subject with horizontal jitter.
-//   g.selectAll("circle")
-//     .data(data)
-//     .enter()
-//     .append("circle")
-//     // Use random jitter for x and map BMI for the y position.
-//     .attr("cx", d => xScale(Math.random()))
-//     .attr("cy", d => yScale(d.BMI))
-//     .attr("r", 5)
-//     .attr("fill", d => colorScale(d.Diabetes))
-//     .on("mouseover", function(event, d) {
-//       d3.select("#tooltip")
-//         .style("display", "block")
-//         .html(
-//           `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-//            <div>Diabetes: ${d.Diabetes}</div>
-//            <div>BMI: ${d.BMI}</div>`
-//         )
-//         .style("left", (event.pageX + 5) + "px")
-//         .style("top", (event.pageY - 28) + "px")
-//         .transition().duration(200)
-//         .style("opacity", 0.9);
-//     })
-//     .on("mouseout", function() {
-//       d3.select("#tooltip")
-//         .transition()
-//         .duration(500)
-//         .style("opacity", 0)
-//         .on("end", function() {
-//            d3.select(this).style("display", "none");
-//         });
-//     });
-  
-//   // Optional: add a y-axis for BMI.
-//   const yAxis = d3.axisLeft(yScale);
-//   g.append("g")
-//    .call(yAxis);
-// }
 
 function plotGLRange() {
   if (!window.subjectMetricsResults) {
