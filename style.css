@@ -515,3 +515,20 @@ h2 {
   margin: 0 auto;
   width: 100%;
 }
+
+/* Add to your style.css */
+#cs1-flex-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+#cs1-left-container {
+  flex: 3;
+  padding: 10px;
+}
+#cs1-right-container {
+  flex: 1;
+  padding: 10px;
+}
