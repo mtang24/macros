@@ -1392,21 +1392,15 @@ function renderDailyComparisonChart(dailyData, recommended) {
     return c.toString();
   }
 
-  function handleDotClick(event, d) {
-    event.preventDefault();
-    
-    // Clear the current content on the visualization page.
-    const vizSection = d3.select("#visualization");
-    vizSection.html("");
-    
-    // Optionally, add a back button or header.
-    const header = document.createElement("h2");
-    header.textContent = `Subject ${d.subject} Details`;
-    vizSection.node().appendChild(header);
-    
-    // This will create the appropriate label with slider for that subject.
-    plotSubjectLabel(d.subject);
-  }
+function handleDotClick(event, d) {
+  event.preventDefault();
+  
+  // Clear the current content on the visualization page.
+  d3.select("#visualization").html("");
+  
+  // Remove any header; now only the nutrition label will be shown.
+  plotSubjectLabel(d.subject);
+}
 
 function plotData() {
   const width = 1000;
@@ -3201,11 +3195,11 @@ document.addEventListener("DOMContentLoaded", function() {
 //   return label;
 // }
 
+// Create the nutrition label element from data.
 function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "protein", "fiber"]) {
   const label = document.createElement('div');
   label.classList.add('nutrition-label');
 
-  // Base HTML (now includes a header for the day)
   const baseHTML = `
     <style>
       .nutrition-label {
@@ -3242,49 +3236,23 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
     </style>
     <h1>Nutrition Facts</h1>
     <h2>Day ${data.day}</h2>
-    <div class="section">
-    </div>
     <div class="section" style="font-size: 32px; font-weight: bold;">
       Calories: ${data.calories || 0}
     </div>
-    <div class="section small">
-      <div>% Daily Value*</div>
-    </div>
+    <div class="section small"><div>% Daily Value*</div></div>
   `;
 
-  // Mapping for the macronutrients.
+  // Build the macronutrient sections.
   const nutrientMapping = {
-    fat: {
-      name: "Total Fat",
-      unit: "g",
-      value: data.fat || 0,
-      daily: data.dailyFat || 0
-    },
-    carbs: {
-      name: "Total Carbohydrate",
-      unit: "g",
-      value: data.carbs || 0,
-      daily: data.dailyCarbs || 0
-    },
-    protein: {
-      name: "Protein",
-      unit: "g",
-      value: data.protein || 0,
-      daily: data.dailyProtein || 0
-    },
-    fiber: {
-      name: "Dietary Fiber",
-      unit: "g",
-      value: data.fiber || 0,
-      daily: data.dailyFiber || 0
-    }
+    fat: { name: "Total Fat", unit: "g", value: data.fat || 0, daily: data.dailyFat || 0 },
+    carbs: { name: "Total Carbohydrate", unit: "g", value: data.carbs || 0, daily: data.dailyCarbs || 0 },
+    protein: { name: "Protein", unit: "g", value: data.protein || 0, daily: data.dailyProtein || 0 },
+    fiber: { name: "Dietary Fiber", unit: "g", value: data.fiber || 0, daily: data.dailyFiber || 0 }
   };
-
-  // Build the macronutrient sections based on the provided array.
   let nutrientHTML = '';
-  macronutrients.forEach(nutrientKey => {
-    if (nutrientMapping[nutrientKey]) {
-      const nutrient = nutrientMapping[nutrientKey];
+  macronutrients.forEach(key => {
+    if (nutrientMapping[key]) {
+      const nutrient = nutrientMapping[key];
       nutrientHTML += `
         <div class="section flex-section">
           <div>${nutrient.name}: ${nutrient.value}${nutrient.unit}</div>
@@ -3294,73 +3262,57 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
     }
   });
 
-  // Footnote regarding daily percentages.
   const footnoteHTML = `
     <div class="small">
       *Percent Daily Values are based on a 2,000 calorie diet.
     </div>
   `;
-
   label.innerHTML = baseHTML + nutrientHTML + footnoteHTML;
   return label;
 }
 
-// Function to plot just the nutrition label (with slider) for a given subject.
 function plotSubjectLabel(subjectNum) {
-  console.log("Called plotSubjectLabel with subject:", subjectNum);
-
-  if (!window.subjectMetricsResults || window.subjectMetricsResults.length === 0) {
-    console.error("Subject metrics not loaded yet.");
-    return;
-  }
-
-  console.log("Loaded subject metrics count:", window.subjectMetricsResults.length);
-  console.log("Available subjects:", window.subjectMetricsResults.map(d => d.subject));
-
-  // Get the subject's metrics.
-  const subject = window.subjectMetricsResults.find(d => Number(d.subject) === Number(subjectNum));
-  if (!subject) {
-    console.error(`Subject ${subjectNum} data not found.`);
-    return;
-  }
-
-  // Create (or clear) a details container (without the subject dot).
-  let detailContainer = d3.select("#subject-details-container");
-  if (detailContainer.empty()) {
-    detailContainer = d3.select("body")
-      .append("div")
-      .attr("id", "subject-details-container")
-      .style("padding", "20px");
-  } else {
-    detailContainer.html("");
-  }
-
-  // Add a header.
-  detailContainer.append("h2")
-    .text(`Subject ${subjectNum} Details`);
-
-  // Create a container only for the label (this will later receive the slider and nutrition label).
-  const labelContainer = detailContainer.append("div")
+  // Clear the visualization container.
+  d3.select("#visualization").html("");
+  d3.select("#subject-details-container").remove();
+  
+  // Create a new container inside #visualization.
+  const container = d3.select("#visualization")
+    .append("div")
+    .attr("id", "subject-details-container")
+    .style("padding", "20px")
+    .style("background-color", "white");
+  
+  // Create a slider element.
+  const slider = container.append("input")
+    .attr("type", "range")
+    .attr("id", "day-slider")
+    .style("width", "100%")
+    .style("margin-bottom", "10px");
+  
+  // Create the label container (without the debug outline).
+  const labelContainer = container.append("div")
     .attr("id", "subject-label-container")
-    .style("padding", "10px");
+    .style("padding", "10px")
+    .style("background-color", "white");
 
-  // Build the CSV path dynamically using a three-digit subject string.
+  // Build CSV path using subjectNum padded to three digits.
   const subjectStr = subjectNum.toString().padStart(3, '0');
   const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
   console.log("DEBUG: Loading CSV from:", csvPath);
-
+  
   d3.csv(csvPath).then(function(csvData) {
     const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
     const formatDay = d3.timeFormat("%Y-%m-%d");
-
-    // Filter out rows missing "Meal Type".
+    
+    // Filter rows that have a valid "Meal Type".
     const filteredCSV = csvData.filter(d => d["Meal Type"] && d["Meal Type"].trim() !== "");
-    if(filteredCSV.length === 0){
-      console.error("DEBUG: No valid rows after filtering 'Meal Type'. Check your CSV file.");
+    if (filteredCSV.length === 0) {
+      console.error("DEBUG: No valid rows after filtering 'Meal Type'.");
     }
-
-    // Convert columns to numbers and parse dates.
-    filteredCSV.forEach(function(d) {
+    
+    // Convert fields.
+    filteredCSV.forEach(d => {
       d.timestamp = parseTime(d.Timestamp);
       d.day = formatDay(d.timestamp);
       d.Calories = +d.Calories;
@@ -3370,8 +3322,8 @@ function plotSubjectLabel(subjectNum) {
       d.Fiber = +d.Fiber;
       d["Libre GL"] = +d["Libre GL"];
     });
-
-    // Compute dailyData by grouping the data on the day.
+    
+    // Group data by day.
     const dailyData = Array.from(d3.group(filteredCSV, d => d.day), ([day, values]) => ({
       day,
       totalCalories: d3.sum(values, d => d.Calories),
@@ -3382,18 +3334,57 @@ function plotSubjectLabel(subjectNum) {
     }));
     dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
     console.log("DEBUG: Computed dailyData:", dailyData);
-
-    // Define recommended nutritional values.
+    
+    // Define recommended values.
     const recommendedValues = {
       avgCarbs: 300,
       avgProtein: 50,
       avgFat: 70,
       avgFiber: 30
     };
-
-    // Initialize the nutrition label (with slider) inside our label container.
-    initializeDailyNutritionLabel(labelContainer, dailyData, recommendedValues);
-  }).catch(function(error) {
+    
+    // Set slider attributes.
+    slider.attr("min", 1)
+      .attr("max", dailyData.length)
+      .attr("value", 1);
+    
+    // Function to update label based on slider day.
+    function updateLabel(dayIndex) {
+      const d0 = dailyData[dayIndex - 1]; // dayIndex is 1-based
+      if (!d0) {
+        console.error("No data for day", dayIndex);
+        return;
+      }
+      const nfData = {
+        day: dayIndex,
+        calories: +d0.totalCalories.toFixed(1),
+        fat: +d0.totalFat.toFixed(1),
+        dailyFat: ((+d0.totalFat / recommendedValues.avgFat) * 100).toFixed(1),
+        carbs: +d0.totalCarbs.toFixed(1),
+        dailyCarbs: ((+d0.totalCarbs / recommendedValues.avgCarbs) * 100).toFixed(1),
+        protein: +d0.totalProtein.toFixed(1),
+        dailyProtein: ((+d0.totalProtein / recommendedValues.avgProtein) * 100).toFixed(1),
+        fiber: +d0.totalFiber.toFixed(1),
+        dailyFiber: ((+d0.totalFiber / recommendedValues.avgFiber) * 100).toFixed(1)
+      };
+      console.log("Computed nfData:", nfData);
+      const labelElement = createNutritionFactsLabel(nfData);
+      console.log("Returned labelElement:", labelElement);
+      labelContainer.html("");
+      labelContainer.node().appendChild(labelElement);
+    }
+    
+    // Set up slider event handler.
+    slider.on("input", function() {
+      const val = parseInt(this.value);
+      console.log("Slider value changed to:", val);
+      updateLabel(val);
+    });
+    
+    // Initial update for day 1.
+    updateLabel(1);
+    
+  }).catch(function(error) { 
     console.error(`DEBUG: Error loading subject ${subjectNum} CSV:`, error);
   });
 }
