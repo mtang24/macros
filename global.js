@@ -7,7 +7,14 @@ const subjectToDiabetesGroup = {};
   .domain([10111, 34251])
   .range([20, 55]);
 
-
+  const infoTextMapping = {
+    calories: "Information about calories: This represents the total energy intake of the food.",
+    fat: "Information about Total Fat: This is the total amount of fat in the food, important for energy.",
+    carbs: "Information about Total Carbohydrate: This includes sugars, starches, and fibers that provide energy.",
+    protein: "Information about Protein: Proteins are vital for muscle repair and growth.",
+    fiber: "Information about Dietary Fiber: Fiber aids digestion and helps regulate blood sugar levels."
+  };
+  
 // Define a color scale for the Diabetes values
 const color = d3.scaleOrdinal()
   .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
@@ -42,9 +49,6 @@ async function loadData() {
   const totalCaloriesValues = subjectsResults.map(d => d.totalCalories);
   const minCalories = d3.min(totalCaloriesValues);
   const maxCalories = d3.max(totalCaloriesValues);
-
-
-  
   
   // Update each dot in the merged data and attach new metrics:
   data.forEach(d => {
@@ -67,7 +71,6 @@ async function loadData() {
   });
 
   plotData();
-  // plotBMIDots();
 }
 
 const sliderValues = {
@@ -194,10 +197,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("page-5")) {
     plotGLRange();
   }
-
-  if (document.getElementById("page-6")) {
-    plotAvgHRBoxPlot();
-  }
  
   if (document.getElementById("page-3")) {
     const macroAverages = computeMacroAverages(window.subjectMetricsResults);
@@ -208,10 +207,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     page3.innerHTML = `
     <h2 class="page-title">Macronutrient Consumption Varies Most in Diabetics</h2>
     <div id="macroPieChartContainer"></div>
-    <p>People in the Type 2 Diabetes group consumed significantly less fiber than
-    the other groups while having higher intakes of carbohydrates and protein. The lower fiber intake 
-    and altered macronutrient distribution may stem from dietary limitations imposed to manage blood
-    sugar levels in diabetic individuals.
+    <p>People in the Type 2 Diabetes group consumed significantly less fiber compared to the other groups, with higher intakes of carbohydrates and protein. This altered macronutrient distribution may be influenced by dietary adjustments made to manage blood sugar levels. It's important to consider the full picture of a nutrition label—fiber, carbs, protein, and fat—when evaluating dietary choices. 
+    While managing specific nutrients is key for certain health conditions, balanced nutrition is essential for overall well-being. Understanding nutrition labels can help make informed decisions that support long-term health goals.
     </p>
   `
     renderMacroPieChart(macroAverages);
@@ -666,9 +663,7 @@ if (predictionEl) {
 
 });
 
-if (document.getElementById("subjectcs2-svg-container")) {
-  plotSubject30Dot();
-}
+
 
 });
 
@@ -679,6 +674,48 @@ slider.addEventListener('input', function() {
   valueDisplay.textContent = parseFloat(this.value).toFixed(2);
 });
 });
+
+function plotStarterNutritionLabel() {
+  // Select the container where the starter dot used to be.
+  // This container is #starter-svg-container (as defined in index_pics.html).
+  const container = d3.select("#starter-svg-container");
+  
+  // Clear any existing content (remove the dot/SVG).
+  container.html("");
+
+  // Define sample nutrition data (adjust with real values if needed).
+  const nutritionData = {
+    subject: 26,
+    calories: 200,    // Example value for calories
+    fat: 5,
+    dailyFat: 8,
+    carbs: 20,
+    dailyCarbs: 7,
+    protein: 5,
+    dailyProtein: 10,
+    fiber: 3,
+    dailyFiber: 12
+  };
+
+  // Create the nutrition label element using the helper function.
+  const nutritionLabelEl = createNutritionFactsLabel(nutritionData);
+  
+  // Append the nutrition label to the container.
+  container.node().appendChild(nutritionLabelEl);
+
+  // Attach click event listeners to all clickable labels in this nutrition label.
+  d3.selectAll(".clickable-label")
+    .on("click", function() {
+      // Get the key for the clicked label from its data-key attribute.
+      const key = d3.select(this).attr("data-key");
+      // Look up the new text from our mapping.
+      const newText = infoTextMapping[key] || "";
+      // Update the content of the info text container.
+      d3.select("#info-text").text(newText);
+    });
+}
+
+
 
 function plotStarterDot() {
   // Select the starter page section within snap-container.
@@ -730,49 +767,97 @@ function plotStarterDot() {
     .attr("cy", subject26.y)
     .attr("r", subject26.size)
     .attr("fill", prediabeticColor)
-    .on("mouseover", function(event, d) {
-      d3.select("#tooltip")
-        .style("display", "block")
-        .transition()
-          .duration(200)
-          .style("opacity", 0.9);
-      d3.select("#tooltip")
-        .html(`
-          <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-          <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-          <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-          <div style="text-align: left;">Average METs: ${d.avgMETs}</div>
-          <div style="text-align: left;">Average HR: ${d.avgHR}</div>
-          <div style="text-align: left;">Glucose range: ${d.minGL}-${d.maxGL}</div>
-        `)
-        .style("left", (event.pageX + 5) + "px")
-        .style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", function() {
-      d3.select("#tooltip")
-        .transition()
-        .duration(500)
-        .style("opacity", 0)
-        .on("end", function() {
-          d3.select(this).style("display", "none");
-        });
-    })
-    .on("click", handleDotClick); // Assumes handleDotClick is defined globally.
 }
 
 // Call the function to render the starter dot.
-plotStarterDot();
+plotStarterDot();//   // Select the starter page section within snap-container.
+//   const svgContainer = d3.select("#starter-svg-container");
+
+//   // Set dimensions for the SVG element.
+//   const width = 500;
+//   const height = 500;
+
+//   // Create and append an SVG element to the starter page.
+//   const svg = svgContainer.append("svg")
+//                 .attr("id", "starter-svg")
+//                 .attr("width", width)
+//                 .attr("height", height);
+
+//   // Hard-code subject 26's data (example values)
+//   const subject26 = {
+//     subject: 26,
+//     Diabetes: "Pre-Diabetes",
+//     totalCalories: 18649,   // Example calorie value.
+//     // avgMETs:"N/A",          // Example METs.
+//     avgHR: 81.99,             // Example heart rate.
+//     minGL: 90,             // Example minimum glucose.
+//     maxGL: 233,            // Example maximum glucose.
+//     // Position the dot in the center of the SVG.
+//     x: width / 2,
+//     y: height / 2,
+//     // Compute circle size based on calories (scaling factor can be adjusted)
+//     size: sizeScale(18649)       // For example, 1500 calories yields a radius of 10.
+//   };
+
+//   // Hard-code the prediabetic color.
+//   const prediabeticColor = "#FDB863";
+
+//   // Ensure the tooltip exists.
+//   if (d3.select("#tooltip").empty()) {
+//     d3.select("body")
+//       .append("div")
+//       .attr("id", "tooltip")
+//       .style("position", "absolute")
+//       .style("opacity", 0)
+//       .style("pointer-events", "none");
+//   }
+
+//   // Append a circle for subject 26 with the same interactive behavior.
+//   svg.append("circle")
+//     .datum(subject26)
+//     .attr("cx", subject26.x)
+//     .attr("cy", subject26.y)
+//     .attr("r", subject26.size)
+//     .attr("fill", prediabeticColor)
+//     .on("mouseover", function(event, d) {
+//       d3.select("#tooltip")
+//         .style("display", "block")
+//         .transition()
+//           .duration(200)
+//           .style("opacity", 0.9);
+//       d3.select("#tooltip")
+//         .html(`
+//           <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
+//           <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
+//           <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
+//           <div style="text-align: left;">Average METs: ${d.avgMETs}</div>
+//           <div style="text-align: left;">Average HR: ${d.avgHR}</div>
+//           <div style="text-align: left;">Glucose range: ${d.minGL}-${d.maxGL}</div>
+//         `)
+//         .style("left", (event.pageX + 5) + "px")
+//         .style("top", (event.pageY - 28) + "px");
+//     })
+//     .on("mouseout", function() {
+//       d3.select("#tooltip")
+//         .transition()
+//         .duration(500)
+//         .style("opacity", 0)
+//         .on("end", function() {
+//           d3.select(this).style("display", "none");
+//         });
+//     })
+//     .on("click", handleDotClick); // Assumes handleDotClick is defined globally.
+// }
+
+// Call the function to render the starter dot.
+//plotStarterNutritionLabel();
 
 function plotCS1Dot() {
-  // (Assuming subjectMetricsResults is already loaded)
   const subject4 = window.subjectMetricsResults.find(d => +d.subject === 4);
   if (!subject4) {
     console.error("Subject 4 data not found.");
     return;
   }
-
-  // Local variables for CSV data, daily averages, and recommended values.
-  let subject4CSV, dailyData, recommendedValues;
 
   // Create a flex container inside #subjectcs1-svg-container.
   const svgContainer = d3.select("#subjectcs1-svg-container").style("width", "100%");
@@ -784,11 +869,11 @@ function plotCS1Dot() {
     .style("align-items", "flex-start")
     .style("width", "100%");
 
-  // Left container: for the slider and nutrition label.
+  // Left container: for the nutrition label.
   const leftContainer = flexContainer.append("div")
     .attr("id", "cs1-left-container")
     .style("flex", "3")
-    .style("padding", "10px");
+    .style("padding", "1px");
 
   // Right container: for the subject dot.
   const rightContainer = flexContainer.append("div")
@@ -805,7 +890,7 @@ function plotCS1Dot() {
     .attr("height", dotHeight);
 
   // Position the dot in the center of the SVG.
-  subject4.x = dotWidth / 2;
+  subject4.x = dotWidth / 3;
   subject4.y = dotHeight / 2;
   subject4.size = sizeScale(+subject4.totalCalories);
   const subjectColor = color(subject4.Diabetes);
@@ -828,7 +913,7 @@ function plotCS1Dot() {
     .attr("r", subject4.size)
     .attr("fill", subjectColor)
     .on("mouseover", function(event, d) {
-      const tooltip = d3.select("#tooltip")
+      d3.select("#tooltip")
         .style("display", "block")
         .html(`
           <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
@@ -837,12 +922,7 @@ function plotCS1Dot() {
         `)
         .style("left", (event.pageX + 5) + "px")
         .style("top", (event.pageY - 28) + "px");
-    
-      tooltip.transition()
-        .duration(200)
-        .style("opacity", 0.9);
     })
-
     .on("mouseout", function () {
       d3.select("#tooltip")
         .transition().duration(500)
@@ -854,15 +934,15 @@ function plotCS1Dot() {
     .on("click", handleDotClick);
 
   // -------------------------------------------------------------
-  // Load subject X CSV & process data for the nutrition label.
+  // Load subject CSV & process data for the nutrition label.
   d3.csv("data/CGMacros-032/CGMacros-032.csv").then(function (csvData) {
     const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
     const formatDay = d3.timeFormat("%Y-%m-%d");
 
     // Filter out rows with missing "Meal Type".
-    subject4CSV = csvData.filter(d => d["Meal Type"] && d["Meal Type"].trim() !== "");
+    const subject4CSV = csvData.filter(d => d["Meal Type"] && d["Meal Type"].trim() !== "");
 
-    // Convert date and numeric values.
+    // Convert fields.
     subject4CSV.forEach(function (d) {
       d.timestamp = parseTime(d.Timestamp);
       d.day = formatDay(d.timestamp);
@@ -874,29 +954,39 @@ function plotCS1Dot() {
       d["Libre GL"] = +d["Libre GL"];
     });
 
-    // Compute dailyData: group by day (we assume there are 10 days).
-    dailyData = Array.from(d3.group(subject4CSV, d => d.day), ([day, values]) => ({
-      day, // e.g., "2025-03-01"
-      totalCalories: d3.sum(values, d => d.Calories),
-      totalCarbs: d3.sum(values, d => d.Carbs),
-      totalProtein: d3.sum(values, d => d.Protein),
-      totalFat: d3.sum(values, d => d.Fat),
-      totalFiber: d3.sum(values, d => d.Fiber)
-    }));
+    // Compute dailyData: group by day.
+    let dailyData = Array.from(
+      d3.group(subject4CSV, d => d.day),
+      ([day, values]) => ({
+        day,
+        totalCalories: d3.sum(values, d => d.Calories),
+        totalCarbs: d3.sum(values, d => d.Carbs),
+        totalProtein: d3.sum(values, d => d.Protein),
+        totalFat: d3.sum(values, d => d.Fat),
+        totalFiber: d3.sum(values, d => d.Fiber)
+      })
+    );
     dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
 
-    // Define recommended nutritional values.
-    recommendedValues = {
+    const recommendedValues = {
       avgCarbs: 300,
       avgProtein: 50,
       avgFat: 70,
       avgFiber: 30
     };
 
-    // Initialize the nutrition facts label (with slider) in the left container.
+    // Initialize nutrition label (using the same function)
+    // In order to show only the first day, we hide the slider.
     initializeDailyNutritionLabel(leftContainer, dailyData, recommendedValues);
+
+    // Hide or disable the day slider so that only day 1 is in effect.
+    const daySlider = document.getElementById('day-slider');
+    if (daySlider) {
+      daySlider.style.display = 'none';
+      daySlider.disabled = true;
+    }
   }).catch(function (error) {
-    console.error("Error loading subject X CSV:", error);
+    console.error("Error loading subject CSV:", error);
   });
 }
 
@@ -916,10 +1006,11 @@ function initializeDailyNutritionLabel(leftContainer, dailyData, recommendedValu
   // Create nutrition label container with forced debug styling
   const labelDiv = document.createElement('div');
   labelDiv.id = 'nutrition-label-container';
-  labelDiv.style.border = '2px dashed red';      // Debug border
-  labelDiv.style.backgroundColor = 'rgba(255,255,0,0.2)';  // Semi-transparent yellow
-  labelDiv.style.minHeight = '150px';              // Ensure it has a minimum height
-  labelDiv.style.display = 'block';                // Force display block
+  labelDiv.style.border = '2px black';      // Debug border
+  labelDiv.style.backgroundColor = 'rgba(255,255,0,0)';  // Semi-transparent yellow
+  labelDiv.style.minHeight = '60px';              // Ensure it has a minimum height
+  labelDiv.style.display = 'block';  
+  labelDiv.style.fontSize = '10px';              // Force display block
   leftContainer.node().appendChild(labelDiv);
   
   // Define function to update the label.
@@ -962,86 +1053,6 @@ function initializeDailyNutritionLabel(leftContainer, dailyData, recommendedValu
   updateNutritionLabel(1);
 }
 
-function plotSubject30Dot() {
-  // Make sure subject metrics have been loaded
-  if (!window.subjectMetricsResults) {
-    console.error("Subject metrics not loaded yet.");
-    return;
-  }
-
-  // Find subject with id 30
-  const subject30 = window.subjectMetricsResults.find(d => +d.subject === 30);
-  if (!subject30) {
-    console.error("Subject 30 data not found.");
-    return;
-  }
-
-  // Select a container in your new page (make sure this div exists in your HTML)
-  const svgContainer = d3.select("#subjectcs2-svg-container");
-  if (svgContainer.empty()) {
-    console.error("Container #subjectcs2-svg-container not found.");
-    return;
-  }
-
-  // Set dimensions for the SVG element (adjust these as needed)
-  const width = 500;
-  const height = 500;
-
-  // Create and append an SVG element to the container
-  const svg = svgContainer.append("svg")
-                .attr("id", "subject30-svg")
-                .attr("width", width)
-                .attr("height", height);
-
-  // Position the dot in the center (you can adjust if needed)
-  subject30.x = width / 2 - 100;
-  subject30.y = height / 2 - 50;
-
-  // Compute the dot size based on totalCalories using your defined sizeScale
-  subject30.size = sizeScale(+subject30.totalCalories) * 2.5;
-
-  // Use the global color scale to set the dot's color based on its Diabetes group
-  const subjectColor = color(subject30.Diabetes);
-
-  // Append the circle for subject 30
-  svg.append("circle")
-    .datum(subject30)
-    .attr("cx", subject30.x)
-    .attr("cy", subject30.y)
-    .attr("r", subject30.size)
-    .attr("fill", subjectColor)
-    .on("mouseover", function(event, d) {
-      // Optionally, add tooltip behavior similar to your other dot functions
-      d3.select("#tooltip")
-        .style("display", "block")
-        .transition()
-          .duration(200)
-          .style("opacity", 0.9);
-      d3.select("#tooltip")
-        .html(`
-          <div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-          <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-          <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-          <div style="text-align: left;">Average HR: ${d.avgHR}</div>
-          <div style="text-align: left;">Glucose range: ${d.minGL} - ${d.maxGL}</div>
-        `)
-        .style("left", (event.pageX + 5) + "px")
-        .style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", function() {
-      d3.select("#tooltip")
-        .transition()
-        .duration(500)
-        .style("opacity", 0)
-        .on("end", function() {
-          d3.select(this).style("display", "none");
-        });
-    })
-    .on("click", handleDotClick); // Uses your existing click handler
-}
-
-
-
 function computeDailyAverages(data) {
   // Create a time parser to parse the full timestamp.
   const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
@@ -1080,228 +1091,59 @@ const recommendedValues = {
   avgFiber: 30     // e.g., 30 grams of fiber
 };
 
-// 3. Render a line chart comparing subject's daily macro averages to the recommended values.
-function renderDailyComparisonChart(dailyData, recommended) {
-  const margin = { top: 50, right: 120, bottom: 50, left: 50 };
-  const width = 800 - margin.left - margin.right;
-  const height = 400 - margin.top - margin.bottom;
 
-  const svg = d3.select("#dailyComparisonChartContainer")
-    .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
-
-  // Define the macros to plot.
-  const macros = ["avgCarbs", "avgProtein", "avgFat", "avgFiber"];
-
-  // Use a scalePoint for the x-axis (days).
-  const xScale = d3.scalePoint()
-    .domain(dailyData.map(d => d.day))
-    .range([0, width])
-    .padding(0.5);
-
-  // For the y-axis, set the maximum based on both subject data and recommended values.
-  const maxSubjectValue = d3.max(dailyData, d => d3.max(macros, macro => d[macro]));
-  const maxRecommended = d3.max(Object.values(recommended));
-  const yMax = Math.max(maxSubjectValue, maxRecommended);
-  const yScale = d3.scaleLinear()
-    .domain([0, yMax * 1.1])
-    .range([height, 0]);
-
-  // Add x-axis.
-  svg.append("g")
-    .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(xScale));
-
-  // Add y-axis.
-  svg.append("g")
-    .call(d3.axisLeft(yScale));
-
-  // Define a color scale for the macros.
-  const color = d3.scaleOrdinal()
-    .domain(macros)
-    .range(["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"]);
-
-  // Create a line generator for each macro.
-  macros.forEach(macro => {
-    const lineGenerator = d3.line()
-      .x(d => xScale(d.day))
-      .y(d => yScale(d[macro]));
-
-    // Draw the line for the current macro.
-    svg.append("path")
-      .datum(dailyData)
-      .attr("fill", "none")
-      .attr("stroke", color(macro))
-      .attr("stroke-width", 2)
-      .attr("d", lineGenerator);
-
-    // Draw circles at each data point.
-    svg.selectAll(`.circle-${macro}`)
-      .data(dailyData)
-      .enter()
-      .append("circle")
-      .attr("class", `circle-${macro}`)
-      .attr("cx", d => xScale(d.day))
-      .attr("cy", d => yScale(d[macro]))
-      .attr("r", 4)
-      .attr("fill", color(macro));
-
-    // Draw a horizontal dashed line for the recommended value.
-    svg.append("line")
-      .attr("x1", 0)
-      .attr("x2", width)
-      .attr("y1", yScale(recommended[macro]))
-      .attr("y2", yScale(recommended[macro]))
-      .attr("stroke", color(macro))
-      .attr("stroke-dasharray", "4 2")
-      .attr("stroke-width", 1);
-
-    // Add a label for the recommended line.
-    svg.append("text")
-      .attr("x", width + 5)
-      .attr("y", yScale(recommended[macro]))
-      .attr("dy", "0.35em")
-      .attr("fill", color(macro))
-      .style("font-size", "12px")
-      .text(`${macro.replace("avg", "")} Rec: ${recommended[macro]}`);
-  });
-
-  // Add a chart title.
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", -20)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .style("font-weight", "bold")
-    .text("Daily Macro Averages vs. Recommended Nutritional Values");
-
-  // Add x-axis label.
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", height + 40)
-    .attr("text-anchor", "middle")
-    .style("font-size", "12px")
-    .text("Day");
-
-  // Add y-axis label.
-  svg.append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", -40)
-    .attr("x", -height / 2)
-    .attr("text-anchor", "middle")
-    .style("font-size", "12px")
-    .text("Grams");
+  
+function lightenColor(col, factor = 0.5) {
+  let c = d3.rgb(col);
+  c.r = Math.round(c.r + (255 - c.r) * factor);
+  c.g = Math.round(c.g + (255 - c.g) * factor);
+  c.b = Math.round(c.b + (255 - c.b) * factor);
+  return c.toString();
 }
-
-
-
-  function plotDexcomGL() {
-    // Load subject 4 CSV data.
-    d3.csv("data/CGMacros-004/CGMacros-004.csv").then(subject4CSV => {
-      // Parse timestamps and filter data.
-      const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
-      const formatDay = d3.timeFormat("%Y-%m-%d");
-  
-      subject4CSV.forEach(d => {
-        d.timestamp = parseTime(d.Timestamp); // Parse timestamp.
-        d.day = formatDay(d.timestamp); // Extract day.
-        d["Dexcom GL"] = +d["Dexcom GL"]; // Convert Libre GL to a number.
-      });
-  
-      // Group data by day.
-      const dailyData = Array.from(d3.group(subject4CSV, d => d.day), ([day, values]) => {
-        return {
-          day: new Date(day), // Convert day back to a Date object.
-          avgLibreGL: d3.mean(values, d => d["Dexcom GL"]) // Compute average Libre GL per day.
-        };
-      });
-  
-      // Sort dailyData by day chronologically.
-      dailyData.sort((a, b) => a.day - b.day);
-  
-      // Define chart dimensions and margins.
-      const width = 800, height = 400;
-      const margin = { top: 20, right: 30, bottom: 30, left: 40 };
-  
-      // Create an SVG container for the chart.
-      const svg = d3.select("#dexcom-gl-container")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height);
-  
-      // Create scales.
-      const xScale = d3.scaleTime()
-        .domain(d3.extent(dailyData, d => d.day)) // Set domain to the date range.
-        .range([margin.left, width - margin.right]);
-  
-      const yScale = d3.scaleLinear()
-        .domain([0, d3.max(dailyData, d => d.avgLibreGL)]) // Set domain to the GL range.
-        .nice()
-        .range([height - margin.bottom, margin.top]);
-  
-      // Create axes.
-      const xAxis = d3.axisBottom(xScale).ticks(d3.timeDay.every(1)); // One tick per day.
-      const yAxis = d3.axisLeft(yScale);
-  
-      svg.append("g")
-        .attr("transform", `translate(0, ${height - margin.bottom})`)
-        .call(xAxis);
-  
-      svg.append("g")
-        .attr("transform", `translate(${margin.left}, 0)`)
-        .call(yAxis);
-  
-      // Create a line generator.
-      const line = d3.line()
-        .x(d => xScale(d.day))
-        .y(d => yScale(d.avgLibreGL));
-  
-      // Append the initial path for the line.
-      const path = svg.append("path")
-        .datum(dailyData)
-        .attr("fill", "none")
-        .attr("stroke", "steelblue")
-        .attr("stroke-width", 2)
-        .attr("d", line);
-  
-      // Animate the line.
-      const totalLength = path.node().getTotalLength(); // Get the total length of the line.
-  
-      path.attr("stroke-dasharray", totalLength + " " + totalLength)
-        .attr("stroke-dashoffset", totalLength)
-        .transition()
-        .duration(5000) // Animation duration in milliseconds.
-        .ease(d3.easeLinear)
-        .attr("stroke-dashoffset", 0);
-  
-    }).catch(error => {
-      console.error("Error loading subject 4 CSV:", error);
-    });
-  }
-
-
-  
-  function lightenColor(col, factor = 0.5) {
-    // Convert the color to an RGB object.
-    let c = d3.rgb(col);
-    // Increase each channel based on the difference to 255.
-    c.r = Math.round(c.r + (255 - c.r) * factor);
-    c.g = Math.round(c.g + (255 - c.g) * factor);
-    c.b = Math.round(c.b + (255 - c.b) * factor);
-    return c.toString();
-  }
 
 function handleDotClick(event, d) {
   event.preventDefault();
-  
-  // Clear the current content on the visualization page.
-  d3.select("#visualization").html("");
-  
-  // Remove any header; now only the nutrition label will be shown.
-  plotSubjectLabel(d.subject);
+
+  d3.select("#visualization").style("position", "relative");
+  d3.select("#scroll-down-arrow").remove();
+
+  const container = d3.select("#visualization")
+    .append("div")
+    .attr("id", "subject-details-container")
+    .style("position", "absolute")
+    .style("top", "0")
+    .style("left", "0")
+    .style("width", "100%")
+    .style("height", "100%")
+    .style("box-sizing", "border-box")
+    .style("padding", "20px")
+    .style("background", "rgba(255, 255, 255, 1)");
+
+  // Do not create the header here; let plotSubjectLabel handle it.
+
+  // Add a close button positioned in the container's top-right corner.
+  container.append("button")
+    .attr("id", "close-button")
+    .text("X")
+    .style("position", "absolute")
+    .style("right", "20px")
+    .style("top", "20px")
+    .style("font-size", "20px")
+    .style("font-weight", "bold")
+    .style("background", "grey")
+    .style("color", "#000")
+    .style("border", "none")
+    .style("border-radius", "5px")
+    .style("padding", "5px 10px")
+    .style("cursor", "pointer")
+    .on("click", () => container.remove());
+
+  // Delegate header and slider creation to plotSubjectLabel.
+  // Pass both subject and diabetes group.
+  plotSubjectLabel(d.subject, d.Diabetes);
+
+  // Optionally update the timeline.
+  loadAndRenderTimeline(d.subject);
 }
 
 function plotData() {
@@ -1491,58 +1333,25 @@ scrollArrow.addEventListener("click", function() {
       .style("pointer-events", "none");
   }
 
-
-  // Healthy circles click handler.
-  // Example update for healthy circles tooltip:
 healthyCircles
-.on("mouseover", (event, d) => {
-  d3.select("#tooltip")
-    .style("display", "block")
-    .transition()
-      .duration(200)
-      .style("opacity", 0.9);
-  d3.select("#tooltip")
-    .html(
-      `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-       <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-       <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-       <div style="text-align: left;">Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Glucose range: ${d.minGL !== undefined ? d.minGL : 'N/A'}-${d.maxGL !== undefined ? d.maxGL : 'N/A'}</div>`
-    )
-    .style("left", (event.pageX + 5) + "px")
-    .style("top", (event.pageY - 28) + "px");
-})
-.on("mouseout", () => {
-  d3.select("#tooltip")
-    .transition()
-    .duration(500)
-    .style("opacity", 0)
-    .on("end", function() {
-       d3.select(this).style("display", "none");
-    });
-})
-.on("click", handleDotClick);
+  .on("mouseover", (event, d) => {
+    updateTooltipNutritionLabel(event, d);
+  })
+  .on("mouseout", () => {
+    d3.select("#tooltip")
+      .transition()
+      .duration(500)
+      .style("opacity", 0)
+      .on("end", function() {
+         d3.select(this).style("display", "none");
+      });
+  })
+  .on("click", handleDotClick);
 
 // Similarly update the tooltip code for preCircles and type2Circles:
 preCircles
 .on("mouseover", (event, d) => {
-  d3.select("#tooltip")
-    .style("display", "block")
-    .transition()
-      .duration(200)
-      .style("opacity", 0.9);
-  d3.select("#tooltip")
-    .html(
-      `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-       <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-       <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-       <div style="text-align: left;">Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Glucose range: ${d.minGL !== undefined ? d.minGL : 'N/A'}-${d.maxGL !== undefined ? d.maxGL : 'N/A'}</div>`
-    )
-    .style("left", (event.pageX + 5) + "px")
-    .style("top", (event.pageY - 28) + "px");
+  updateTooltipNutritionLabel(event, d);
 })
 .on("mouseout", () => {
   d3.select("#tooltip")
@@ -1557,22 +1366,7 @@ preCircles
 
 type2Circles
 .on("mouseover", (event, d) => {
-  d3.select("#tooltip")
-    .style("display", "block")
-    .transition()
-      .duration(200)
-      .style("opacity", 0.9);
-  d3.select("#tooltip")
-    .html(
-      `<div style="text-align: center; font-weight: bold;">Subject: ${d.subject}</div>
-       <div style="text-align: left;">Diabetes: ${d.Diabetes}</div>
-       <div style="text-align: left;">Total Calories: ${d.totalCalories}</div>
-       <div style="text-align: left;">Average METs: ${d.avgMETs !== undefined ? d.avgMETs.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Average HR: ${d.avgHR !== undefined ? d.avgHR.toFixed(2) : 'N/A'}</div>
-       <div style="text-align: left;">Glucose range: ${d.minGL !== undefined ? d.minGL : 'N/A'}-${d.maxGL !== undefined ? d.maxGL : 'N/A'}</div>`
-    )
-    .style("left", (event.pageX + 5) + "px")
-    .style("top", (event.pageY - 28) + "px");
+  updateTooltipNutritionLabel(event, d);
 })
 .on("mouseout", () => {
   d3.select("#tooltip")
@@ -1837,286 +1631,7 @@ window.addEventListener("wheel", function handleScroll(e) {
 });
 
 
-function plotGLRange() {
-  if (!window.subjectMetricsResults) {
-    console.error("Subject metrics not loaded yet.");
-    return;
-  }
 
-  // Define diabetes groups and sort subjects.
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const sortedSubjects = window.subjectMetricsResults.slice().sort((a, b) => {
-    if (a.Diabetes !== b.Diabetes) {
-      return groups.indexOf(a.Diabetes) - groups.indexOf(b.Diabetes);
-    }
-    return +a.subject - +b.subject;
-  });
-  window.sortedSubjects = sortedSubjects;
-
-  // Create a responsive SVG in the container.
-  const { svg, width, height, margin } = createResponsiveSVG("#glrange-container", { top: 40, right: 30, bottom: 40, left: 100 });
-  window.svg = svg;
-
-  // Build a new domain that interleaves gap markers between groups.
-  const newDomain = [];
-  for (let i = 0; i < sortedSubjects.length; i++) {
-    if (i === 0 || sortedSubjects[i].Diabetes !== sortedSubjects[i - 1].Diabetes) {
-      newDomain.push("gap-" + sortedSubjects[i].Diabetes);
-    }
-    newDomain.push(sortedSubjects[i].subject);
-  }
-  window.newDomain = newDomain;
-
-  // Create y and x scales.
-  const yScale = d3.scaleBand()
-    .domain(newDomain)
-    .range([0, height])
-    .padding(0.1);
-  window.yScale = yScale;
-
-  const rawMin = d3.min(sortedSubjects, d => d.minGL);
-  const xMin = rawMin < 40 ? 40 : rawMin;
-  const xMax = d3.max(sortedSubjects, d => d.maxGL);
-  const xScale = d3.scaleLinear()
-    .domain([xMin, xMax])
-    .range([0, width])
-    .nice();
-  window.xScale = xScale;
-
-  // Draw axes.
-  svg.append("g")
-    .attr("transform", `translate(0, ${height})`)
-    .call(d3.axisBottom(xScale));
-
-  svg.append("g")
-    .call(d3.axisLeft(yScale)
-      .tickFormat(d => d.toString().startsWith("gap-") ? "" : d));
-  
-  svg.append("text")
-    .attr("text-anchor", "middle")
-    .attr("x", width / 2)
-    .attr("y", height + margin.bottom - 10) // Position below the X-axis
-    .style("font-size", "14px")
-    .style("font-weight", "bold")
-    .text("Glucose Level (mg/dL)");
-
-  // Add Y-axis label (Subject Number)
-  svg.append("text")
-    .attr("text-anchor", "middle")
-    .attr("transform", `translate(-${margin.left / 1.5}, ${height / 2}) rotate(-90)`)
-    .style("font-size", "14px")
-    .style("font-weight", "bold")
-    .text("Subject Number");
-
-
-  // (Optional) Compute the predicted group and update the title.
-  const groupAverageGL = groups.map(group => {
-    const groupData = sortedSubjects.filter(d => d.Diabetes === group);
-    return { group, avgMin: d3.mean(groupData, d => +d.minGL), avgMax: d3.mean(groupData, d => +d.maxGL) };
-  });
-  let bestGroup = groupAverageGL[0],
-      bestDiff = Infinity;
-  groupAverageGL.forEach(g => {
-    const diff = Math.abs(g.avgMin - (window.userGlucoseMin ? window.userGlucoseMin() : 40)) +
-                 Math.abs(g.avgMax - (window.userGlucoseMax ? window.userGlucoseMax() : 410));
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestGroup = g;
-    }
-  });
-  let container = d3.select("#glrange-container");
-  let titleEl = container.select("#predicted-group-title");
-  if (titleEl.empty()) {
-    titleEl = container.append("div")
-      .attr("id", "predicted-group-title")
-      .style("position", "absolute")
-      .style("top", "10px")
-      .style("left", "50%")
-      .style("transform", "translateX(-50%)")
-      .style("text-align", "center")
-      .style("font-size", "16px")
-      .style("font-weight", "bold")
-      .style("pointer-events", "none");
-  }
-  titleEl.text(`Your predicted group: ${bestGroup.group}`);
-
-  // (Optional) Compute overlayY for user-input overlay (not our primary concern here).
-  const groupDataForOverlay = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-  const overlayY = groupDataForOverlay.length > 0 ?
-      d3.mean(groupDataForOverlay, d => yScale(d.subject) + yScale.bandwidth() / 2) :
-      d3.max(sortedSubjects, d => yScale(d.subject)) + yScale.bandwidth() + 30;
-
-  // Draw background highlight for the predicted group.
-  const backgroundGroup = svg.insert("g", ":first-child").attr("class", "background");
-  const color = d3.scaleOrdinal().domain(groups)
-      .range(["#2C7BB6", "#FDB863", "#D7191C"]);
-  function lightenColor2(col, factor = 0.7) {
-    let c = d3.rgb(col);
-    c.r = Math.round(c.r + (255 - c.r) * factor);
-    c.g = Math.round(c.g + (255 - c.g) * factor);
-    c.b = Math.round(c.b + (255 - c.b) * factor);
-    return c.toString();
-  }
-  const bestGroupData = sortedSubjects.filter(d => d.Diabetes === bestGroup.group);
-  if (bestGroupData.length > 0) {
-    const yVals = bestGroupData.map(d => yScale(d.subject));
-    const yMinRect = d3.min(yVals);
-    const yMaxRect = d3.max(yVals) + yScale.bandwidth();
-    backgroundGroup.append("rect")
-      .attr("x", 0)
-      .attr("y", yMinRect)
-      .attr("width", width)
-      .attr("height", yMaxRect - yMinRect)
-      .attr("fill", lightenColor2(color(bestGroup.group), 0.3))
-      .attr("opacity", 0.5);
-  }
-
-  // Create a foreground group.
-  const foregroundGroup = svg.append("g").attr("class", "foreground");
-  window.foregroundGroup = foregroundGroup;
-
-  // ********************
-  // Create the tooltip element (remove any previous instance).
-  d3.select("#gl-tooltip").remove(); 
-  const glTooltip = d3.select("body")
-    .append("div")
-    .attr("id", "gl-tooltip")
-    .style("position", "absolute")
-    .style("background", "rgba(255,255,255,0.9)")
-    .style("border", "1px solid black")
-    .style("padding", "8px")
-    .style("border-radius", "4px")
-    .style("pointer-events", "none")
-    .style("display", "none")
-    .style("font-size", "12px");
-
-  // ********************
-  // Draw subject glucose range lines (optional tooltip on lines).
-  foregroundGroup.selectAll("line.gl-range")
-    .data(sortedSubjects)
-    .enter()
-    .append("line")
-    .attr("class", "gl-range")
-    .attr("x1", d => xScale(Math.max(d.minGL, 40)))
-    .attr("x2", d => xScale(d.maxGL))
-    .attr("y1", d => yScale(d.subject) + yScale.bandwidth() / 2)
-    .attr("y2", d => yScale(d.subject) + yScale.bandwidth() / 2)
-    .attr("stroke", "gray")
-    .attr("stroke-width", 2)
-    .on("mouseover", function(event, d) {
-      glTooltip.style("display", "block")
-        .html(`<strong>Subject: ${d.subject}</strong><br>Min GL: ${d.minGL}<br>Max GL: ${d.maxGL}`);
-    })
-    .on("mousemove", function(event, d) {
-      const bbox = this.getBoundingClientRect();
-      const tooltipX = bbox.x + bbox.width / 2;
-      const tooltipY = bbox.y;
-      glTooltip.style("left", tooltipX + "px")
-               .style("top", (tooltipY - 28) + "px");
-    })
-    .on("mouseout", function() {
-      glTooltip.style("display", "none");
-    });
-
-  // ********************
-  // Draw the min and max dots with tooltip event handlers that show the tooltip when hovered directly.
-  foregroundGroup.selectAll("circle.min-gl")
-    .data(sortedSubjects)
-    .enter()
-    .append("circle")
-    .attr("class", "min-gl")
-    .attr("cx", d => xScale(Math.max(d.minGL, 40)))
-    .attr("cy", d => yScale(d.subject) + yScale.bandwidth() / 2)
-    .attr("r", 5)
-    .attr("fill", d => color(d.Diabetes))
-    .on("mouseover", function(event, d) {
-      glTooltip.style("display", "block")
-        .html(`<strong>Subject: ${d.subject}</strong><br>Min GL: ${d.minGL}`);
-    })
-    .on("mousemove", function(event, d) {
-      const bbox = this.getBoundingClientRect();
-      const tooltipX = bbox.x + bbox.width / 2;
-      const tooltipY = bbox.y;
-      glTooltip.style("left", tooltipX + "px")
-               .style("top", (tooltipY - 28) + "px");
-    })
-    .on("mouseout", function() {
-      glTooltip.style("display", "none");
-    });
-
-  foregroundGroup.selectAll("circle.max-gl")
-    .data(sortedSubjects)
-    .enter()
-    .append("circle")
-    .attr("class", "max-gl")
-    .attr("cx", d => xScale(d.maxGL))
-    .attr("cy", d => yScale(d.subject) + yScale.bandwidth() / 2)
-    .attr("r", 5)
-    .attr("fill", d => color(d.Diabetes))
-    .on("mouseover", function(event, d) {
-      glTooltip.style("display", "block")
-        .html(`<strong>Subject: ${d.subject}</strong><br>Max GL: ${d.maxGL}`);
-    })
-    .on("mousemove", function(event, d) {
-      const bbox = this.getBoundingClientRect();
-      const tooltipX = bbox.x + bbox.width / 2;
-      const tooltipY = bbox.y;
-      glTooltip.style("left", tooltipX + "px")
-               .style("top", (tooltipY - 28) + "px");
-    })
-    .on("mouseout", function() {
-      glTooltip.style("display", "none");
-    });
-
-  // (Optional) Draw overlay elements for user input (line, dots, label)
-  const userMinGL = window.userGlucoseMin ? window.userGlucoseMin() : 40;
-  const userMaxGL = window.userGlucoseMax ? window.userGlucoseMax() : 410;
-  const overlayData = [{ min: userMinGL, max: userMaxGL, y: overlayY }];
-  const overlayLine = foregroundGroup.selectAll("line.user-glucose-line").data(overlayData);
-  overlayLine.enter()
-    .append("line")
-    .attr("class", "user-glucose-line")
-    .merge(overlayLine)
-    .transition().duration(300)
-    .attr("x1", d => xScale(d.min))
-    .attr("x2", d => xScale(d.max))
-    .attr("y1", d => d.y)
-    .attr("y2", d => d.y)
-    .attr("stroke", "black")
-    .attr("stroke-width", 2);
-  overlayLine.exit().remove();
-
-  const overlayDotsData = [
-    { cx: userMinGL, y: overlayY },
-    { cx: userMaxGL, y: overlayY }
-  ];
-  const overlayDots = foregroundGroup.selectAll("circle.user-glucose-dot").data(overlayDotsData);
-  overlayDots.enter()
-    .append("circle")
-    .attr("class", "user-glucose-dot")
-    .merge(overlayDots)
-    .transition().duration(300)
-    .attr("cx", d => xScale(d.cx))
-    .attr("cy", d => d.y)
-    .attr("r", 5)
-    .attr("fill", "black");
-  overlayDots.exit().remove();
-
-  const overlayLabel = foregroundGroup.selectAll("text.user-input-label").data(overlayData);
-  overlayLabel.enter()
-    .append("text")
-    .attr("class", "user-input-label")
-    .merge(overlayLabel)
-    .transition().duration(300)
-    .attr("x", -10)
-    .attr("y", d => d.y + 5)
-    .attr("text-anchor", "end")
-    .style("font-size", "12px")
-    .style("font-weight", "bold")
-    .style("fill", color(bestGroup.group))
-    .text("Your input");
-  overlayLabel.exit().remove();
-}
 
 function updateUserGlucoseRange() {
   // If subject metrics are not loaded, wait and try again.
@@ -2467,203 +1982,6 @@ function renderMacroPieChart(macroAverages) {
   });
 }
 
-
-
-
-function plotAvgHRBoxPlot() {
-  if (!window.subjectMetricsResults) return;
-  const data = window.subjectMetricsResults;
-
-  // Set dimensions and margins for the chart.
-  const margin = { top: 0, right: 30, bottom: 70, left: 100 },
-        width = 560 - margin.left - margin.right,
-        height = 480 - margin.top - margin.bottom;
-
-  // Append the SVG to the container.
-  const svg = d3.select("#hr-container")
-    .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-  // Define the color scale.
-  const color = d3.scaleOrdinal()
-    .domain(["Healthy", "Pre-Diabetes", "Type 2 Diabetes"])
-    .range(["#2C7BB6", "#FDB863", "#D7191C"]);
-
-  // Compute summary statistics per group using rollup.
-  const sumstatMap = d3.rollup(
-    data,
-    v => {
-      const values = v.map(g => +g.avgHR).sort(d3.ascending);
-      const q1 = d3.quantile(values, 0.25),
-            median = d3.quantile(values, 0.5),
-            q3 = d3.quantile(values, 0.75);
-      const interQuantileRange = q3 - q1;
-      const computedMin = q1 - 1.5 * interQuantileRange;
-      const actualMin = d3.min(values);
-      const min = Math.max(computedMin, actualMin);
-      const max = q3 + 1.5 * interQuantileRange;
-      return { q1, median, q3, interQuantileRange, min, max };
-    },
-    d => (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy"
-  );
-
-  // Convert the Map to an array.
-  const sumstat = Array.from(sumstatMap, ([key, value]) => ({ key, value }));
-
-  // Set up the Y scale with the three metabolic groups.
-  const groups = ["Healthy", "Pre-Diabetes", "Type 2 Diabetes"];
-  const y = d3.scaleBand()
-    .range([0, height])
-    .domain(groups)
-    .padding(0.4);
-  svg.append("g")
-    .call(d3.axisLeft(y).tickSize(0))
-    .select(".domain").remove();
-
-  // Set up the X scale for Average HR.
-  const minHR = d3.min(data, d => +d.avgHR),
-        maxHR = d3.max(data, d => +d.avgHR);
-  // Store these globally so slider event handlers can use them.
-  window.hrMinHR = minHR;
-  window.hrMaxHR = maxHR;
-  const x = d3.scaleLinear()
-    .domain([minHR - 5, maxHR + 5])
-    .range([0, width]);
-  // Save the x scale and y scale globally:
-  window.hrXScale = x;
-  window.hrYScale = y;
-
-  // Append a visible X axis.
-  svg.append("g")
-    .attr("transform", `translate(0, ${height})`)
-    .call(d3.axisBottom(x).ticks(5));
-
-  // Add X axis label.
-  svg.append("text")
-    .attr("text-anchor", "middle")
-    .attr("x", width / 2)
-    .attr("y", height + margin.top + 30)
-    .text("Average HR");
-
-  // Draw vertical lines (whiskers) for each group.
-  svg.selectAll("vertLines")
-    .data(sumstat)
-    .enter()
-    .append("line")
-      .attr("x1", d => x(d.value.min))
-      .attr("x2", d => x(d.value.max))
-      .attr("y1", d => y(d.key) + y.bandwidth() / 2)
-      .attr("y2", d => y(d.key) + y.bandwidth() / 2)
-      .attr("stroke", "black");
-
-  // Draw the main boxes for each group.
-  svg.selectAll("boxes")
-    .data(sumstat)
-    .enter()
-    .append("rect")
-      .attr("x", d => x(d.value.q1))
-      .attr("width", d => x(d.value.q3) - x(d.value.q1))
-      .attr("y", d => y(d.key))
-      .attr("height", y.bandwidth())
-      .attr("stroke", "black")
-      .style("fill", d => color(d.key))
-      .style("opacity", 0.3)
-      .on("mouseover", function(event, d) {
-          tooltip.transition().duration(200).style("opacity", 1);
-          tooltip.html(
-            `<strong>${d.key}</strong><br>
-             Q1: ${d.value.q1.toFixed(1)}<br>
-             Median: ${d.value.median.toFixed(1)}<br>
-             Q3: ${d.value.q3.toFixed(1)}<br>
-             IQR: ${d.value.interQuantileRange.toFixed(1)}<br>
-             Min: ${d.value.min.toFixed(1)}<br>
-             Max: ${d.value.max.toFixed(1)}`
-          )
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY + 10) + "px");
-      })
-      .on("mouseleave", function() {
-          tooltip.transition().duration(200).style("opacity", 0);
-      });
-
-  // Draw median lines.
-  svg.selectAll("medianLines")
-    .data(sumstat)
-    .enter()
-    .append("line")
-      .attr("x1", d => x(d.value.median))
-      .attr("x2", d => x(d.value.median))
-      .attr("y1", d => y(d.key))
-      .attr("y2", d => y(d.key) + y.bandwidth())
-      .attr("stroke", "black");
-
-  // Create a tooltip for the points.
-  let tooltip = d3.select("#hr-container").select(".tooltip");
-  if (tooltip.empty()) {
-    tooltip = d3.select("#hr-container")
-      .append("div")
-      .attr("class", "tooltip")
-      .style("opacity", 0)
-      .style("position", "absolute")
-      .style("background", "lightgrey")
-      .style("border-radius", "4px")
-      .style("padding", "8px")
-      .style("pointer-events", "none")
-      .style("font-size", "16px");
-  }
-
-  // -- Add individual points with jitter for each subject's avgHR.
-  const jitterWidth = 50;
-  svg.selectAll("indPoints")
-    .data(data)
-    .enter()
-    .append("circle")
-      .attr("cx", d => x(d.avgHR))
-      .attr("cy", d => {
-         const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
-         return y(group) + y.bandwidth() / 2 - jitterWidth/2 + Math.random() * jitterWidth;
-      })
-      .attr("r", 4)
-      .attr("fill", d => {
-         const group = (subjectData[d.subject] && subjectData[d.subject][0].Diabetes) || "Healthy";
-         return color(group);
-      })
-      .attr("stroke", "black")
-      .on("mouseover", function(event, d) {
-          tooltip.transition().duration(200).style("opacity", 1);
-          tooltip.html("<span style='color:grey'>Average HR: </span>" + d.avgHR)
-                 .style("left", (event.pageX + 30) + "px")
-                 .style("top", (event.pageY + 30) + "px");
-      })
-      .on("mouseleave", function() {
-          tooltip.transition().duration(200).style("opacity", 0);
-      });
-    // Set default selected group if none.
-    if (!window.selectedDiabetesGroup) {
-      window.selectedDiabetesGroup = "Healthy";
-    }
-
-    // Append a dot for each group.
-  const sliderDots = svg.selectAll(".hr-slider-dot")
-  .data(groups)
-  .enter()
-  .append("circle")
-  .attr("class", "hr-slider-dot")
-  .attr("cx", window.hrXScale(sliderValues.avgHR))  // x position based on slider value.
-  .attr("cy", d => window.hrYScale(d) + window.hrYScale.bandwidth() / 2)  // y position based on the group.
-  .attr("r", 4)
-  .attr("fill", "black")
-  .attr("stroke", "black")
-  .attr("stroke-width", 2);
-}
-
-document.getElementById('slider-hr').setAttribute('min', 40);
-document.getElementById('slider-hr').setAttribute('max', window.hrMaxHR);
-
-
 function createResponsiveSVG(containerSelector, margin = { top: 40, right: 30, bottom: 40, left: 100 }) {
   const container = document.querySelector(containerSelector);
   if (!container) {
@@ -2786,91 +2104,6 @@ document.addEventListener("DOMContentLoaded", function() {
   setupGlucoseSlider();
 });
 
-// function createNutritionFactsLabel(data) {
-//   const label = document.createElement('div');
-//   label.classList.add('nutrition-label');
-//   label.innerHTML = `
-//       <style>
-//           .nutrition-label {
-//               border: 1px solid black;
-//               width: 300px;
-//               font-family: Arial, sans-serif;
-//               padding: 10px;
-//               background: white;
-//               margin: 20px auto;
-//           }
-//           .nutrition-label h1 {
-//               font-size: 24px;
-//               margin: 0;
-//               border-bottom: 10px solid black;
-//               padding-bottom: 5px;
-//           }
-//           .nutrition-label .section {
-//               border-bottom: 1px dashed black;
-//               padding: 5px 0;
-//               margin-bottom: 5px;
-//           }
-//           .nutrition-label .section:last-child {
-//               border-bottom: none;
-//           }
-//           .nutrition-label .daily-value {
-//               text-align: right;
-//               font-weight: bold;
-//           }
-//           .nutrition-label .small {
-//               font-size: 10px;
-//           }
-//       </style>
-//       <h1>Nutrition Facts</h1>
-//       <div class="section">
-//           <div>Serving Size: ${data.servingSize || 'N/A'}</div>
-//           <div>Servings Per Container: ${data.servingsPerContainer || 'N/A'}</div>
-//       </div>
-//       <div class="section" style="font-size: 32px; font-weight: bold;">
-//           Calories: ${data.calories || 0}
-//       </div>
-//       <div class="section small">
-//           <div>% Daily Value*</div>
-//       </div>
-//       <div class="section">
-//           <div>Total Fat: ${data.totalFat || 0}g</div>
-//           <div class="daily-value">${data.dailyFat || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Saturated Fat: ${data.saturatedFat || 0}g</div>
-//           <div class="daily-value">${data.dailySaturatedFat || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Trans Fat: ${data.transFat || 0}g</div>
-//       </div>
-//       <div class="section">
-//           <div>Cholesterol: ${data.cholesterol || 0}mg</div>
-//           <div class="daily-value">${data.dailyCholesterol || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Sodium: ${data.sodium || 0}mg</div>
-//           <div class="daily-value">${data.dailySodium || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Total Carbohydrate: ${data.totalCarbs || 0}g</div>
-//           <div class="daily-value">${data.dailyCarbs || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Dietary Fiber: ${data.dietaryFiber || 0}g</div>
-//           <div class="daily-value">${data.dailyFiber || 0}%</div>
-//       </div>
-//       <div class="section">
-//           <div>Total Sugars: ${data.sugars || 0}g</div>
-//       </div>
-//       <div class="section">
-//           <div>Protein: ${data.protein || 0}g</div>
-//       </div>
-//       <div class="small">
-//           *Percent Daily Values are based on a 2,000 calorie diet.
-//       </div>
-//   `;
-//   return label;
-// }
 
 // Create the nutrition label element from data.
 function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "protein", "fiber"]) {
@@ -2893,11 +2126,7 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
         border-bottom: 10px solid black;
         padding-bottom: 5px;
       }
-      .nutrition-label h2 {
-        font-size: 18px;
-        margin: 10px 0 5px;
-        text-align: center;
-      }
+      /* Removed the Day header styling */
       .nutrition-label .section {
         border-bottom: 1px dashed black;
         padding: 5px 0;
@@ -2910,16 +2139,20 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
       .nutrition-label .small {
         font-size: 10px;
       }
+      /* Style for clickable labels */
+      .clickable-label {
+        text-decoration: underline;
+        cursor: pointer;
+      }
     </style>
-    <h1>Nutrition Facts</h1>
-    <h2>Day ${data.day}</h2>
+    <h1>${data.subject ? "Subject " + data.subject + "'s Nutrition Facts" : "Nutrition Facts"}</h1>
     <div class="section" style="font-size: 32px; font-weight: bold;">
-      Calories: ${data.calories || 0}
+      <span class="clickable-label" data-key="calories">Calories:</span> ${data.calories || 0}
     </div>
     <div class="section small"><div>% Daily Value*</div></div>
   `;
 
-  // Build the macronutrient sections.
+  // Mapping for the macronutrients.
   const nutrientMapping = {
     fat: { name: "Total Fat", unit: "g", value: data.fat || 0, daily: data.dailyFat || 0 },
     carbs: { name: "Total Carbohydrate", unit: "g", value: data.carbs || 0, daily: data.dailyCarbs || 0 },
@@ -2932,7 +2165,9 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
       const nutrient = nutrientMapping[key];
       nutrientHTML += `
         <div class="section flex-section">
-          <div>${nutrient.name}: ${nutrient.value}${nutrient.unit}</div>
+          <div>
+            <span class="clickable-label" data-key="${key}">${nutrient.name}:</span> ${nutrient.value}${nutrient.unit}
+          </div>
           <div class="daily-value">${nutrient.daily}%</div>
         </div>
       `;
@@ -2948,46 +2183,87 @@ function createNutritionFactsLabel(data, macronutrients = ["fat", "carbs", "prot
   return label;
 }
 
-function plotSubjectLabel(subjectNum) {
-  // Clear the visualization container.
-  d3.select("#visualization").html("");
-  d3.select("#subject-details-container").remove();
-  
-  // Create a new container inside #visualization.
-  const container = d3.select("#visualization")
-    .append("div")
-    .attr("id", "subject-details-container")
-    .style("padding", "20px")
-    .style("background-color", "white");
-  
-  // Create a slider element.
-  const slider = container.append("input")
+// Updated plotSubjectLabel now accepts a second parameter for the diabetes group.
+function plotSubjectLabel(subjectNum, diabetesGroup) {
+  // Create or retrieve the main details container.
+  let container = d3.select("#subject-details-container");
+  if (container.empty()) {
+    container = d3.select("#visualization")
+      .append("div")
+      .attr("id", "subject-details-container")
+      .style("padding", "20px")
+      .style("background-color", "white");
+  }
+
+  // Create or retrieve the header container.
+  let headerContainer = container.select("#header-container");
+  if (headerContainer.empty()) {
+    headerContainer = container.insert("div", ":first-child")
+      .attr("id", "header-container")
+      .style("position", "relative")
+      .style("margin-bottom", "20px");
+    // Create the header h1 with initial text that includes the subject and its group.
+    headerContainer.append("h1")
+      .attr("id", "subject-header")
+      .text(`Subject ${subjectNum} - ${diabetesGroup} | Day 1`)
+      .style("margin", "0")
+      .style("text-align", "center");
+  } else {
+    // If header already exists (perhaps created earlier), update its text.
+    d3.select("#subject-header")
+      .text(`Subject ${subjectNum} - ${diabetesGroup} | Day 1`);
+  }
+
+  // Create or retrieve the top bar for slider controls.
+  let topBar = container.select("#top-bar");
+  if (topBar.empty()) {
+    topBar = container.append("div")
+      .attr("id", "top-bar")
+      .style("display", "flex")
+      .style("justify-content", "space-between")
+      .style("align-items", "center")
+      .style("background", "#f0f0f0")
+      .style("padding", "10px")
+      .style("border", "1px solid #ccc")
+      .style("margin-bottom", "10px");
+  }
+  // Remove any existing slider to avoid duplicates.
+  topBar.select("#day-slider").remove();
+
+  // Append the day slider.
+  const slider = topBar.append("input")
     .attr("type", "range")
     .attr("id", "day-slider")
-    .style("width", "100%")
-    .style("margin-bottom", "10px");
-  
-  // Create the label container (without the debug outline).
-  const labelContainer = container.append("div")
-    .attr("id", "subject-label-container")
-    .style("padding", "10px")
-    .style("background-color", "white");
+    .style("width", "150px")
+    .style("margin-right", "10px");
+
+  // Create or retrieve the label container for nutrition info.
+  let labelContainer = container.select("#subject-label-container");
+  if (labelContainer.empty()) {
+    labelContainer = container.append("div")
+      .attr("id", "subject-label-container")
+      .style("padding", "10px")
+      .style("background-color", "white");
+  } else {
+    labelContainer.html("");
+  }
 
   // Build CSV path using subjectNum padded to three digits.
   const subjectStr = subjectNum.toString().padStart(3, '0');
   const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
   console.log("DEBUG: Loading CSV from:", csvPath);
-  
+
   d3.csv(csvPath).then(function(csvData) {
     const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
     const formatDay = d3.timeFormat("%Y-%m-%d");
-    
-    // Filter rows that have a valid "Meal Type".
+
+    // Filter rows with a valid "Meal Type".
     const filteredCSV = csvData.filter(d => d["Meal Type"] && d["Meal Type"].trim() !== "");
     if (filteredCSV.length === 0) {
       console.error("DEBUG: No valid rows after filtering 'Meal Type'.");
+      return;
     }
-    
+
     // Convert fields.
     filteredCSV.forEach(d => {
       d.timestamp = parseTime(d.Timestamp);
@@ -2999,39 +2275,39 @@ function plotSubjectLabel(subjectNum) {
       d.Fiber = +d.Fiber;
       d["Libre GL"] = +d["Libre GL"];
     });
-    
+
     // Group data by day.
-    const dailyData = Array.from(d3.group(filteredCSV, d => d.day), ([day, values]) => ({
-      day,
-      totalCalories: d3.sum(values, d => d.Calories),
-      totalCarbs: d3.sum(values, d => d.Carbs),
-      totalProtein: d3.sum(values, d => d.Protein),
-      totalFat: d3.sum(values, d => d.Fat),
-      totalFiber: d3.sum(values, d => d.Fiber)
-    }));
+    const dailyData = Array.from(
+      d3.group(filteredCSV, d => d.day),
+      ([day, values]) => ({
+        day,
+        totalCalories: d3.sum(values, d => d.Calories),
+        totalCarbs: d3.sum(values, d => d.Carbs),
+        totalProtein: d3.sum(values, d => d.Protein),
+        totalFat: d3.sum(values, d => d.Fat),
+        totalFiber: d3.sum(values, d => d.Fiber)
+      })
+    );
     dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
     console.log("DEBUG: Computed dailyData:", dailyData);
-    
-    // Define recommended values.
+
+    // Define recommended nutritional values.
     const recommendedValues = {
       avgCarbs: 300,
       avgProtein: 50,
       avgFat: 70,
       avgFiber: 30
     };
-    
-    // Set slider attributes.
+
+    // Set slider attributes (slider is 1-indexed).
     slider.attr("min", 1)
       .attr("max", dailyData.length)
       .attr("value", 1);
-    
-    // Function to update label based on slider day.
+
+    // Function to update both the nutrition label and header text.
     function updateLabel(dayIndex) {
-      const d0 = dailyData[dayIndex - 1]; // dayIndex is 1-based
-      if (!d0) {
-        console.error("No data for day", dayIndex);
-        return;
-      }
+      const d0 = dailyData[dayIndex - 1];
+      if (!d0) return;
       const nfData = {
         day: dayIndex,
         calories: +d0.totalCalories.toFixed(1),
@@ -3044,24 +2320,757 @@ function plotSubjectLabel(subjectNum) {
         fiber: +d0.totalFiber.toFixed(1),
         dailyFiber: ((+d0.totalFiber / recommendedValues.avgFiber) * 100).toFixed(1)
       };
-      console.log("Computed nfData:", nfData);
-      const labelElement = createNutritionFactsLabel(nfData);
-      console.log("Returned labelElement:", labelElement);
+
+      // Update the nutrition label.
       labelContainer.html("");
-      labelContainer.node().appendChild(labelElement);
+      labelContainer.node().appendChild(createNutritionFactsLabel(nfData));
+
+      // Update header text to reflect the current day while keeping subject and group.
+      d3.select("#subject-header")
+        .text(`Subject ${subjectNum} - ${diabetesGroup} | Day ${dayIndex}`);
+
+      // Optionally: update timeline filtering based on d0.day.
+      loadAndRenderTimeline(subjectNum, d0.day);
     }
-    
-    // Set up slider event handler.
+
+    // Listen for slider events.
     slider.on("input", function() {
       const val = parseInt(this.value);
       console.log("Slider value changed to:", val);
       updateLabel(val);
     });
-    
+
     // Initial update for day 1.
     updateLabel(1);
-    
-  }).catch(function(error) { 
+  }).catch(function(error) {
     console.error(`DEBUG: Error loading subject ${subjectNum} CSV:`, error);
   });
 }
+
+const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+const formatTime = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+const formatTimeToHoursMinutes = d3.timeFormat("%H:%M");
+
+d3.csv("data/CGMacros-032/CGMacros-032.csv").then(function (csvData) {
+ 
+  // Parse timestamps and filter rows with valid image paths
+  const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+  // Filter rows with valid image paths and parse timestamps
+  const imageData = csvData
+    .filter(d => d["Image path"] && d["Image path"].trim() !== "")
+    .map(d => ({
+      timestamp: parseTime(d.Timestamp),
+      imagePath: `data/CGMacros-032/${d["Image path"].trim()}`
+    }));
+
+  // Call the function to render the timeline
+  renderTimeline(imageData);
+}).catch(function (error) {
+  console.error("Error loading or processing CSV file:", error);
+});
+
+function renderTimeline(imageData) {
+  d3.select("#timeline-container").remove();
+  
+  const container = d3.select("#subject-details-container")
+    .append("div")
+    .attr("id", "timeline-container")
+    .style("width", "100%")
+    .style("overflow-x", "auto")
+    .style("white-space", "nowrap")
+    .style("margin-top", "20px");
+
+
+  // If there are less than 5 images, center them.
+  if (imageData.length < 5) {
+    container.style("display", "flex")
+             .style("justify-content", "center");
+  }
+  
+  // Nutrition tooltip element
+  const tooltip = d3.select("body")
+    .append("div")
+    .attr("class", "image-tooltip")
+    .style("position", "absolute")
+    .style("background", "rgba(255, 255, 255, 0.95)")
+    .style("border", "1px solid #ddd")
+    .style("pointer-events", "none")
+    .style("opacity", 0);
+
+  container.selectAll(".timeline-image")
+    .data(imageData)
+    .enter()
+    .append("div")
+    .attr("class", "timeline-image")
+    .style("display", "inline-block")
+    .style("margin-right", "15px")
+    .style("vertical-align", "top")
+    .on("mouseover", function(event, d) {
+      if (!isNaN(d.Carbs) && !isNaN(d.Protein) && !isNaN(d.Fat) && !isNaN(d.Fiber)) {
+        tooltip.html(`
+          <div class="nutrition-tooltip">
+            <strong>${d['Meal Type'] || 'Meal'}</strong>
+            <div>Calories: ${d.Calories.toFixed(1)} kcal</div>
+            <div>Carbs: ${d.Carbs.toFixed(1)}g</div>
+            <div>Protein: ${d.Protein.toFixed(1)}g</div>
+            <div>Fat: ${d.Fat.toFixed(1)}g</div>
+            <div>Fiber: ${d.Fiber.toFixed(1)}g</div>
+          </div>
+        `)
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY - 28) + "px")
+        .style("opacity", 1);
+      }
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0))
+    .each(function(d) {
+      const div = d3.select(this);
+      div.append("img")
+        .attr("src", d.imagePath)
+        .attr("alt", `Meal at ${d.timestamp.toLocaleTimeString()}`)
+        .style("width", "180px")
+        .style("height", "180px")
+        .style("object-fit", "cover")
+        .style("border-radius", "4px");
+      
+        div.append("div")
+        .style("font-size", "16px")
+        .style("margin-top", "6px")
+        .style("color", "#666")
+        .style("font-weight", "bold")
+        .text(d.timestamp.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}));
+    });
+}
+
+async function loadAndRenderTimeline(subjectNumber, dayFilter) {
+  const subjectStr = subjectNumber.toString().padStart(3, '0');
+  const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
+  const formatDay = d3.timeFormat("%Y-%m-%d");
+
+  try {
+    const csvData = await d3.csv(csvPath);
+
+    // Process timeline data with proper error handling
+    const imageData = csvData
+    .filter(d => d["Image path"] && d["Image path"].trim() !== "")
+    .map(d => {
+      const timestamp = parseTime(d.Timestamp);
+      if (!timestamp) {
+        console.warn("Invalid timestamp:", d.Timestamp);
+        return null;
+      }
+      if (!d["Meal Type"] || d["Meal Type"].trim().toLowerCase() === "unspecified meal") {
+        return null;
+      }
+      // Compute day property
+      const day = formatDay(timestamp);
+      const safeNumber = (val, fallback = 0) =>
+        isNaN(parseFloat(val)) ? fallback : parseFloat(val);
+  
+      return {
+        subject: subjectNumber, // Add the subject property
+        timestamp: timestamp,
+        day: day,
+        imagePath: `data/CGMacros-${subjectNumber.toString().padStart(3, '0')}/${d["Image path"].trim()}`,
+        Carbs: safeNumber(d.Carbs),
+        Protein: safeNumber(d.Protein),
+        Fat: safeNumber(d.Fat),
+        Fiber: safeNumber(d.Fiber),
+        Calories: safeNumber(d.Calories),
+        'Meal Type': d['Meal Type'].trim(),
+        'Amount Consumed': d['Amount Consumed']
+      };
+    })
+    .filter(d => d !== null)
+    .filter(d => !dayFilter || d.day === dayFilter);
+
+    renderTimeline(imageData);
+  } catch (error) {
+    console.error(`Error loading timeline for subject ${subjectNumber}:`, error);
+    d3.select("#timeline-container").html(`
+      <div class="error-message">
+        Could not load meal history for subject ${subjectNumber}
+      </div>
+    `);
+  }
+}
+
+// NEW: Helper function to update the tooltip for nutrition labels.
+function updateTooltipNutritionLabel(event, d) {
+  // Ensure the tooltip is a D3 selection.
+  const tooltip = d3.select("#tooltip");
+  tooltip
+    .style("display", "block")
+    .transition()
+      .duration(200)
+      .style("opacity", 1);
+  
+  // Clear previous content.
+  tooltip.html("");
+  
+  // Build CSV path using subject padded to three digits.
+  const subjectStr = d.subject.toString().padStart(3, '0');
+  const csvPath = `data/CGMacros-${subjectStr}/CGMacros-${subjectStr}.csv`;
+  console.log("DEBUG: Loading CSV for tooltip nutrition label from:", csvPath);
+
+  d3.csv(csvPath).then(function(csvData) {
+    const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+    const formatDay = d3.timeFormat("%Y-%m-%d");
+
+    // Filter rows with valid "Meal Type".
+    const filteredCSV = csvData.filter(row => row["Meal Type"] && row["Meal Type"].trim() !== "");
+    if (filteredCSV.length === 0) {
+      console.error("DEBUG: No valid rows after filtering 'Meal Type'.");
+      return;
+    }
+
+    // Convert fields.
+    filteredCSV.forEach(row => {
+      row.timestamp = parseTime(row.Timestamp);
+      row.day = formatDay(row.timestamp);
+      row.Calories = +row.Calories;
+      row.Carbs = +row.Carbs;
+      row.Protein = +row.Protein;
+      row.Fat = +row.Fat;
+      row.Fiber = +row.Fiber;
+      row["Libre GL"] = +row["Libre GL"];
+    });
+
+    // Group data by day.
+    const dailyData = Array.from(d3.group(filteredCSV, row => row.day), ([day, values]) => ({
+      day,
+      totalCalories: d3.sum(values, row => row.Calories),
+      totalCarbs: d3.sum(values, row => row.Carbs),
+      totalProtein: d3.sum(values, row => row.Protein),
+      totalFat: d3.sum(values, row => row.Fat),
+      totalFiber: d3.sum(values, row => row.Fiber)
+    }));
+    dailyData.sort((a, b) => new Date(a.day) - new Date(b.day));
+    console.log("DEBUG: Computed dailyData for tooltip label:", dailyData);
+
+    // Aggregate averages.
+    const aggregated_nfData = {
+      calories: +(d3.mean(dailyData, d => d.totalCalories)).toFixed(1),
+      carbs: +(d3.mean(dailyData, d => d.totalCarbs)).toFixed(1),
+      protein: +(d3.mean(dailyData, d => d.totalProtein)).toFixed(1),
+      fat: +(d3.mean(dailyData, d => d.totalFat)).toFixed(1),
+      fiber: +(d3.mean(dailyData, d => d.totalFiber)).toFixed(1)
+    };
+
+    // Recommended values.
+    const recommendedValues = {
+      avgCarbs: 300,
+      avgProtein: 50,
+      avgFat: 70,
+      avgFiber: 30
+    };
+
+    // Calculate percentages.
+    aggregated_nfData.dailyCarbs = ((aggregated_nfData.carbs / recommendedValues.avgCarbs) * 100).toFixed(1);
+    aggregated_nfData.dailyProtein = ((aggregated_nfData.protein / recommendedValues.avgProtein) * 100).toFixed(1);
+    aggregated_nfData.dailyFat = ((aggregated_nfData.fat / recommendedValues.avgFat) * 100).toFixed(1);
+    aggregated_nfData.dailyFiber = ((aggregated_nfData.fiber / recommendedValues.avgFiber) * 100).toFixed(1);
+    aggregated_nfData.subject = d.subject;
+
+    // Create the nutrition facts label using your helper.
+    const labelElement = createNutritionFactsLabel(aggregated_nfData);
+    tooltip.node().appendChild(labelElement);
+
+    // Update tooltip position.
+    // Get tooltip dimensions
+const tooltipWidth = tooltip.node().offsetWidth;
+const tooltipHeight = tooltip.node().offsetHeight;
+const pageWidth = window.innerWidth;
+const pageHeight = window.innerHeight;
+
+// Default tooltip position
+let xPos = event.pageX + 10;
+let yPos = event.pageY - 28;
+
+// Prevent right-side cutoff
+if (xPos + tooltipWidth > pageWidth) {
+  xPos = event.pageX - tooltipWidth - 10;
+}
+
+// Prevent bottom-side cutoff
+if (yPos + tooltipHeight > pageHeight) {
+  yPos = event.pageY - tooltipHeight - 10;
+}
+
+// Prevent top-side cutoff
+if (yPos < 0) {
+  yPos = event.pageY + 10; // Move it below the cursor
+}
+
+// Prevent left-side cutoff
+if (xPos < 0) {
+  xPos = 10; // Keep it within viewport
+}
+
+// Apply the corrected position
+tooltip
+  .style("left", `${xPos}px`)
+  .style("top", `${yPos}px`);
+
+  }).catch(function(error) {
+    console.error("DEBUG: Error loading CSV for tooltip nutrition label:", error);
+  });
+}
+
+function createSingleColumnNutritionLabel(data) {
+  // A dictionary mapping each key to explanatory text for the click interaction.
+  // Added "dailyValue" for the % Daily Value line.
+  const nutrientInfo = {
+    servingSize: "Arguably the most important metric. Serving Size represents the typical amount consumed at one time. Pay attention to the number of servings per container, as all nutrient values are based on a single serving. This is not a recommendation of how much you should drink or eat.",
+    calories: "Calories measure the energy from one serving. Balance calorie intake with expenditure to maintain a healthy weight. The general guide is 2,000 calories per day, but individual needs vary.",
+    totalFat: "Total Fat includes all types of fat. It is essential for energy and cell function, but excess intake can contribute to weight gain.",
+    saturatedFat: "Saturated Fat is found in animal products and some oils. Excessive consumption may raise bad cholesterol (LDL) and increase the risk of heart disease. Limit to less than 10% of total daily calories.",
+    transFat: "Trans Fat is associated with increased LDL cholesterol and heart disease risk. Avoid foods with partially hydrogenated oils.",
+    cholesterol: "Cholesterol is found in animal products. Dietary intake should be limited to maintain heart health. The general recommendation is less than 300mg per day.",
+    sodium: "Sodium (salt) is necessary for body functions, but excessive intake can lead to high blood pressure. Limit to less than 2,300mg per day.",
+    totalCarb: "Total Carbohydrate includes sugars, starches, and fiber. Carbs provide energy, but refined carbs and added sugars should be limited.",
+    fiber: "Dietary Fiber aids digestion, helps control blood sugar, and can lower cholesterol. Aim for at least 28g per day.",
+    totalSugars: "Total Sugars include both natural and added sugars. Reducing added sugars can help prevent weight gain and chronic diseases.",
+    naturalSugars: "Natural Sugars occur naturally in foods like fruit and dairy. These sources also provide essential nutrients.",
+    addedSugars: "Added Sugars are introduced during food processing (e.g., table sugar, syrups). The FDA recommends keeping added sugars below 50g per day (10% of total calories).",
+    protein: "Protein is essential for building and repairing tissues. Most Americans meet their protein needs, so focus on variety (lean meats, fish, beans, nuts).",
+    vitaminD: "Vitamin D supports calcium absorption and bone health. The recommended daily value is at least 20mcg.",
+    calcium: "Calcium is crucial for strong bones and teeth. The daily goal is at least 1,300mg.",
+    iron: "Iron helps transport oxygen in the blood. The daily goal is at least 18mg to prevent anemia.",
+    potassium: "Potassium helps regulate fluid balance and muscle function. Aim for at least 4,700mg per day.",
+    dailyValue: "The % Daily Value (%DV) shows how much a nutrient contributes to a daily diet. 5% DV or less is low, 20% DV or more is high. Use it to compare foods and make informed choices. You want higher DV% for Dietary Fiber, Vitamin D, Calcium, Iron, and Potassium. You want lesser DV% for Saturated Fat, Sodium and Added Sugars."
+  };
+  
+
+  // 1) Clear any existing content in the left column (#label-svg-container).
+  const container = document.getElementById('label-svg-container');
+  container.innerHTML = '';
+
+  // 2) Create the main label wrapper.
+  const label = document.createElement('div');
+  label.classList.add('nutrition-label');
+  label.style.border = '1px solid black';
+  label.style.width = '280px';
+  label.style.fontFamily = 'Arial, sans-serif';
+  label.style.background = '#fff';
+  label.style.margin = '0 auto';
+  label.style.padding = '10px';
+  label.style.position = 'relative';
+
+  // 3) Inline CSS for headings, spacing, colors, etc.
+  const style = document.createElement('style');
+  style.textContent = `
+    .nutrition-label h1 {
+      font-size: 22px;
+      margin: 0;
+      border-bottom: 10px solid black;
+      padding-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    /* Serving size area background: light green, clickable */
+    .serving-size-area {
+      background-color: lightgreen;
+      display: inline-block;
+      width: 100%;
+      padding: 4px 0;
+      margin-bottom: 4px;
+      cursor: pointer; /* Make it clickable */
+    }
+
+    .bold-line {
+      font-weight: bold;
+      font-size: 14px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    /* Calories row background: light pink, clickable */
+    .calories-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 22px;
+      font-weight: bold;
+      margin: 8px 0;
+      background-color: lightpink;
+      padding: 2px 4px;
+      cursor: pointer; /* Make it clickable */
+    }
+
+    /* Highlight the "% Daily Value" line with a pastel color, left-aligned */
+    .daily-value-text {
+      font-size: 12px;
+      font-weight: bold;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 5px;
+      background-color: #f2e6ff; /* Pastel purple for highlight */
+      display: inline-block;
+      width: 100%;
+      padding: 5px;
+      cursor: pointer; /* Make it clickable */
+      text-align: right; /* Left align text */
+    }
+
+    /* Each nutrient row is clickable, with separate label/value spans */
+    .line-item {
+      display: flex;
+      margin-bottom: 2px;
+      cursor: pointer;
+    }
+    .line-item .nutrient-label {
+      /* Left portion: pastel yellow */
+      background-color: #fff9c4; /* Pastel yellow */
+      flex: 1;
+      padding: 2px 4px;
+      font-size: 14px;
+      display: inline-block;
+    }
+    .line-item .nutrient-value {
+      /* If DV is present, we make it purple; otherwise pastel yellow */
+      flex: 0;
+      padding: 2px 4px;
+      font-size: 14px;
+      display: inline-block;
+    }
+
+    /* Indent sub-items (e.g., Saturated Fat under Total Fat) */
+    .indent {
+      margin-left: 10px;
+    }
+
+    /* Thick black bar for separation */
+    .thick-bar {
+      border-bottom: 10px solid black;
+      margin: 6px 0;
+    }
+
+    .footnote {
+      font-size: 10px;
+      border-top: 1px solid #000;
+      margin-top: 6px;
+      padding-top: 6px;
+    }
+  `;
+  label.appendChild(style);
+
+  // 4) Utility to create a clickable line item with two spans:
+  //    - .nutrient-label (left, pastel yellow)
+  //    - .nutrient-value (right, pastel yellow or purple if DV present)
+  function createLineItem(nutrientKey, labelText, dvText, isBold = false) {
+    // Container for the entire row
+    const row = document.createElement('div');
+    row.classList.add('line-item');
+    row.setAttribute('data-key', nutrientKey);
+
+    // Left portion: the label
+    const labelSpan = document.createElement('span');
+    labelSpan.classList.add('nutrient-label');
+    if (isBold) {
+      labelSpan.innerHTML = `<strong>${labelText}</strong>`;
+    } else {
+      labelSpan.innerHTML = labelText;
+    }
+
+    // Right portion: the DV or numeric value
+    const valueSpan = document.createElement('span');
+    valueSpan.classList.add('nutrient-value');
+
+    // Convert dvText to string safely
+    const dv = dvText !== undefined && dvText !== null 
+      ? String(dvText).trim() 
+      : '';
+  
+    if (dv !== '') {
+      valueSpan.style.backgroundColor = 'purple';
+      valueSpan.style.color = '#fff';
+      valueSpan.innerHTML = dv + '%';
+    } else {
+      // no DV => keep it pastel yellow
+      valueSpan.style.backgroundColor = '#fff9c4';
+      valueSpan.innerHTML = dv; // might be empty
+    }
+
+    // Append the two spans to the row
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+
+    // On click, show info text in #label-info
+    row.addEventListener('click', () => {
+      const infoContainer = document.getElementById('label-info');
+      const infoText = nutrientInfo[nutrientKey] || "No additional information available.";
+      infoContainer.innerHTML = `
+        <h3>${labelText}</h3>
+        <p>${infoText}</p>
+      `;
+    });
+
+    return row;
+  }
+
+  //
+  // BUILD THE LABEL SECTIONS
+  //
+
+  // Header: "Nutrition Facts"
+  const header = document.createElement('h1');
+  header.textContent = 'Nutrition Facts';
+  label.appendChild(header);
+
+  // Serving size area (light green background, clickable)
+  const servingSizeArea = document.createElement('div');
+  servingSizeArea.classList.add('serving-size-area');
+  servingSizeArea.setAttribute('data-key', 'servingSize');
+  servingSizeArea.innerHTML = `
+    ${data.servingsPerContainer || ''}<br>
+    Serving size <strong>${data.servingSize || ''}</strong>
+  `;
+  // Add click event for serving size
+  servingSizeArea.addEventListener('click', () => {
+    const infoContainer = document.getElementById('label-info');
+    const infoText = nutrientInfo['servingSize'] || "No additional information available.";
+    infoContainer.innerHTML = `
+      <h3>Serving Size</h3>
+      <p>${infoText}</p>
+    `;
+  });
+  label.appendChild(servingSizeArea);
+
+  // Bold line: "Amount per serving"
+  const amountPerServing = document.createElement('div');
+  amountPerServing.classList.add('bold-line');
+  amountPerServing.textContent = 'Amount per serving';
+  label.appendChild(amountPerServing);
+
+  // Calories line (light pink background, clickable)
+  const caloriesLine = document.createElement('div');
+  caloriesLine.classList.add('calories-line');
+  caloriesLine.setAttribute('data-key', 'calories');
+  caloriesLine.innerHTML = `
+    <span>Calories</span>
+    <span>${data.calories || 0}</span>
+  `;
+  // Add click event for calories
+  caloriesLine.addEventListener('click', () => {
+    const infoContainer = document.getElementById('label-info');
+    const infoText = nutrientInfo['calories'] || "No additional information available.";
+    infoContainer.innerHTML = `
+      <h3>Calories</h3>
+      <p>${infoText}</p>
+    `;
+  });
+  label.appendChild(caloriesLine);
+
+  // % Daily Value (highlighted, left-aligned, clickable)
+  const dailyValueText = document.createElement('div');
+  dailyValueText.classList.add('daily-value-text');
+  dailyValueText.setAttribute('data-key', 'dailyValue');
+  dailyValueText.textContent = '% Daily Value*';
+  // Click event for daily value line
+  dailyValueText.addEventListener('click', () => {
+    const infoContainer = document.getElementById('label-info');
+    const infoText = nutrientInfo['dailyValue'] || "No additional information available.";
+    infoContainer.innerHTML = `
+      <h3>% Daily Value</h3>
+      <p>${infoText}</p>
+    `;
+  });
+  label.appendChild(dailyValueText);
+
+  // MACROS & NUTRIENTS
+  // 1) Total Fat
+  label.appendChild(
+    createLineItem(
+      'totalFat',
+      `Total Fat ${data.totalFat || 0}g`,
+      data.totalFatDV || '',
+      true
+    )
+  );
+
+  // 1a) Saturated Fat (indented)
+  const satFat = createLineItem(
+    'saturatedFat',
+    `Saturated Fat ${data.saturatedFat || 0}g`,
+    data.saturatedFatDV || ''
+  );
+  satFat.classList.add('indent');
+  label.appendChild(satFat);
+
+  // 1b) Trans Fat (italicize "trans")
+  const transFat = createLineItem(
+    'transFat',
+    `<i>Trans</i> Fat ${data.transFat || 0}g`,
+    '' // no DV
+  );
+  transFat.classList.add('indent');
+  label.appendChild(transFat);
+
+  // 2) Cholesterol
+  label.appendChild(
+    createLineItem(
+      'cholesterol',
+      `Cholesterol ${data.cholesterol || 0}mg`,
+      data.cholesterolDV || '',
+      true
+    )
+  );
+
+  // 3) Sodium
+  label.appendChild(
+    createLineItem(
+      'sodium',
+      `Sodium ${data.sodium || 0}mg`,
+      data.sodiumDV || '',
+      true
+    )
+  );
+
+  // 4) Total Carbohydrate
+  label.appendChild(
+    createLineItem(
+      'totalCarb',
+      `Total Carbohydrate ${data.totalCarb || 0}g`,
+      data.totalCarbDV || '',
+      true
+    )
+  );
+
+  // 4a) Dietary Fiber (indented)
+  const fiber = createLineItem(
+    'fiber',
+    `Dietary Fiber ${data.fiber || 0}g`,
+    data.fiberDV || ''
+  );
+  fiber.classList.add('indent');
+  label.appendChild(fiber);
+
+  // 4b) Total Sugars
+  label.appendChild(
+    createLineItem(
+      'totalSugars',
+      `Total Sugars ${data.totalSugars || 0}g`,
+      '' // no DV for total sugars
+    )
+  );
+
+  // 4c) Natural Sugars (indented)
+  const naturalSugars = createLineItem(
+    'naturalSugars',
+    `Natural Sugars ${data.naturalSugars || 0}g`,
+    ''
+  );
+  naturalSugars.classList.add('indent');
+  label.appendChild(naturalSugars);
+
+  // 4d) Added Sugars (indented)
+  const addedSugars = createLineItem(
+    'addedSugars',
+    `Includes ${data.addedSugars || 0}g Added Sugars`,
+    data.addedSugarsDV || ''
+  );
+  addedSugars.classList.add('indent');
+  label.appendChild(addedSugars);
+
+  // 5) Protein
+  label.appendChild(
+    createLineItem(
+      'protein',
+      `Protein ${data.protein || 0}g`,
+      '', // no DV
+      true
+    )
+  );
+
+  // Thick black bar
+  const thickBar = document.createElement('div');
+  thickBar.classList.add('thick-bar');
+  label.appendChild(thickBar);
+
+  // Vitamins & Minerals (below thick bar)
+  label.appendChild(
+    createLineItem(
+      'vitaminD',
+      `Vitamin D ${data.vitaminD || 0}mcg`,
+      data.vitaminDDV || ''
+    )
+  );
+  label.appendChild(
+    createLineItem(
+      'calcium',
+      `Calcium ${data.calcium || 0}mg`,
+      data.calciumDV || ''
+    )
+  );
+  label.appendChild(
+    createLineItem(
+      'iron',
+      `Iron ${data.iron || 0}mg`,
+      data.ironDV || ''
+    )
+  );
+  label.appendChild(
+    createLineItem(
+      'potassium',
+      `Potassium ${data.potassium || 0}mg`,
+      data.potassiumDV || ''
+    )
+  );
+
+  // Footnote
+  const footnote = document.createElement('div');
+  footnote.classList.add('footnote');
+  footnote.innerHTML = `
+    * The % Daily Value (DV) tells you how much a nutrient in a serving of food 
+    contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.
+  `;
+  label.appendChild(footnote);
+
+  // Finally, append the label to the container (left column).
+  container.appendChild(label);
+}
+
+
+
+
+
+const chipotleBowlData = {
+  servingsPerContainer: "1 serving per container",
+  servingSize: "1 bowl (approx. 600g)",
+  calories: 850,
+
+  totalFat: 35,        // grams
+  totalFatDV: 45,      // % DV
+  saturatedFat: 10,    // grams
+  saturatedFatDV: 50,  // % DV
+  transFat: 0,         // grams
+
+  cholesterol: 75,     // mg
+  cholesterolDV: 25,   // % DV
+  sodium: 1500,        // mg
+  sodiumDV: 65,        // % DV
+
+  totalCarb: 90,       // grams
+  totalCarbDV: 33,     // % DV
+  fiber: 15,           // grams
+  fiberDV: 54,         // % DV
+  totalSugars: 4,      // grams
+  addedSugars: 1,      // grams
+  addedSugarsDV: 2,    // % DV
+
+  protein: 50,         // grams
+
+  vitaminD: 2,         // mcg
+  vitaminDDV: 10,      // % DV
+  calcium: 200,        // mg
+  calciumDV: 15,       // % DV
+  iron: 5,             // mg
+  ironDV: 28,          // % DV
+  potassium: 900,      // mg
+  potassiumDV: 19      // % DV
+};
+
+createSingleColumnNutritionLabel(chipotleBowlData);
+

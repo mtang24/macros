@@ -49,11 +49,22 @@ section {
   justify-content: center;
   align-items: left;
   scroll-snap-align: start;
+  padding: 30px 0;
+  border-bottom: 1px solid #eee;
+  
 }
 
+/* Timeline spacing */
+#timeline-container {
+  margin: 30px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
 h1 {
     font-size: 175%;
     text-align: center;
+    padding-top: 50px;
 }
 
 p {
@@ -79,6 +90,8 @@ p {
   opacity: 0;
   transition: opacity 0.2s ease;
   z-index: 2000;
+  white-space: nowrap;
+  max-width: none;
 }
 
   
@@ -96,6 +109,16 @@ circle:hover {
     color: #eaeaea
   }
   
+#chipotle-column {
+  display: flex;
+  align-items: center; /* Aligns content in the center */
+  gap: 5px; /* Adjusts horizontal spacing */
+}
+
+#label-interaction {
+  margin: 60px auto !important;
+  padding: 40px 0;
+}
 dl.info {
     display: grid;
     grid-template-columns: max-content 1fr;
@@ -156,17 +179,22 @@ dl.info[hidden]:not(:hover, :focus-within) {
 
 #visualization p {
   margin-top: -90px; /* Adjust value as needed */
-  font-size: 16px;  /* Optional: ensure readability */
-  text-align: center; /* Optional: keep it centered */
+  font-size: 16px;  
+  text-align: center; 
 }
 
 #page-final {
-  height: 100vh; /* Full viewport height */
+  margin-top: 100px; 
   display: flex;
-  align-items: flex-start; /* Align to the top */
-  justify-content: flex-start; /* Align to the left */
-  padding: 0px; /* Adds space from the edges */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100vh;
+  padding: 20px;
+  transform: translateY(-10%);
 }
+
 
 #page-final h1 {
   font-size: 1.75rem;
@@ -180,7 +208,9 @@ dl.info[hidden]:not(:hover, :focus-within) {
 }
 
 h2 {
-  margin-bottom: 10px; /* Adjust this value as needed */
+  margin-bottom: 5px; /* Adjust this value as needed */
+  margin-top: 10px;
+  font-size: 1.4rem;
 }
 
 #page-2 h2 {
@@ -188,7 +218,10 @@ h2 {
 }
 
 
-
+h3 {
+  margin-top: 0px; /* Adjust this value as needed */
+  font-weight: 400;
+}
 
 
 #glrange-container {
@@ -517,6 +550,24 @@ h2 {
   width: 100%;
 }
 
+#subjectcs1-text {
+  display: block; /* Ensures it behaves as a block element */
+  width: 80vw; /* 80% of the viewport width */
+  max-width: 700px; /* Prevents it from getting too large */
+  margin: 0 auto; /* Centers it */
+  padding: 10px; /* Keeps some spacing inside */
+  text-align: center; /* Centers text inside */
+  overflow: visible; /* Ensures no weird clipping */
+  white-space: normal; /* Ensures text wraps properly */
+  font-size: 50px;
+}
+
+#subjectcs1-text p {
+  font-size: 20px;
+  color: #666;
+}
+
+
 /* Add to your style.css */
 #cs1-flex-container {
   display: flex;
@@ -533,3 +584,38 @@ h2 {
   flex: 1;
   padding: 10px;
 }
+
+/* Make the page a vertical flex container */
+#dataset-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;  /* full viewport height */
+  gap: 0px; /* space between title and container */
+}
+
+
+#dataset-info p {
+  font-size: 25px;
+  color: #666;
+}
+
+div#cs1-right-container {
+  width: 300px !important; /* Adjust width to fit content */
+  height: auto !important; /* Let height adjust dynamically */
+  max-width: 100%; /* Ensure responsiveness */
+  display: flex; /* Helps align the SVG inside */
+  justify-content: center; /* Center content inside */
+  align-items: center;
+  padding: 10px; /* Add some spacing */
+}
+
+svg#subject1cs-svg {
+  width: 200px !important;  /* Force smaller width */
+  height: 200px !important; /* Force smaller height */
+  max-width: 100%; /* Prevents it from overflowing */
+  display: block;
+  margin: auto;
+}
+
+
